@@ -1,10 +1,3 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const cors = require('cors')
-const mongoose = require('mongoose')
-const app = express()
-const { routers } = require('./routes')
-
 require("dotenv").config(() => {
   if (process.env.NODE_ENV === "production")
     return { path: '.env.production' }
@@ -12,6 +5,16 @@ require("dotenv").config(() => {
     return { path: '.env.development' }
   else return
 })
+
+const express = require('express')
+const bodyParser = require('body-parser')
+const cors = require('cors')
+const mongoose = require('mongoose')
+const app = express()
+const { routers } = require('./routes')
+const { triggerJobs } = require("./jobs")
+
+triggerJobs()
 
 const PORT = (process.env.PORT || 4000)
 const WHITELIST_ORIGIN = ['https://fxethers.com', 'http://127.0.0.1']
