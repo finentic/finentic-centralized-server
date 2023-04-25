@@ -14,10 +14,10 @@ const app = express()
 const { routers } = require('./routes')
 const { triggerJobs } = require("./jobs")
 
-triggerJobs()
-
 const PORT = (process.env.PORT || 4000)
 const WHITELIST_ORIGIN = ['https://fxethers.com', 'http://127.0.0.1']
+
+triggerJobs()
 
 // mongoose connect
 mongoose.set('strictQuery', false)

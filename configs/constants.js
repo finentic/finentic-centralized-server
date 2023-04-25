@@ -1,11 +1,3 @@
-require("dotenv").config(() => {
-    if (process.env.NODE_ENV === "production")
-        return { path: '.env.production' }
-    else if (process.env.NODE_ENV === "development")
-        return { path: '.env.development' }
-    else return
-})
-
 const {
     API_WS_ENDPOINT,
     API_HTTP_ENDPOINT,
@@ -23,16 +15,52 @@ const ITEM_PATH_DB_DEFAULT = 'pictures/items/default.jpg'
 const DEFAULT_PICTURE = 'public/pictures/default.jpg'
 const DEFAULT_PICTURE_DB = 'pictures/default.jpg'
 
+const ACCOUNT_STATE = ['UNVERIFIED', "VERIFIED", "BANNED"]
+const LISTING_STATE = ['LISTING', 'SOLD', 'DELIVERED', 'CANCELED']
+const ROLES = [
+    'DEFAULT_ADMIN',
+    'MODERATOR_ADMIN',
+    'MODERATOR',
+    'TREASURER_ADMIN',
+    'TREASURER',
+    'OPERATOR_ADMIN',
+    'OPERATOR',
+]
+
+const ROLES_MAPPING = {
+    '0x0000000000000000000000000000000000000000000000000000000000000000': ROLES[0],
+    '0x71f3d55856e4058ed06ee057d79ada615f65cdf5f9ee88181b914225088f834f': ROLES[2],
+    '0x3496e2e73c4d42b75d702e60d9e48102720b8691234415963a5a857b86425d07': ROLES[4],
+    '0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929': ROLES[6],
+}
+
+const ADMIN_ROLES_MAPPING = {
+    '0x0000000000000000000000000000000000000000000000000000000000000000': ROLES[0],
+    '0x71f3d55856e4058ed06ee057d79ada615f65cdf5f9ee88181b914225088f834f': ROLES[1],
+    '0x3496e2e73c4d42b75d702e60d9e48102720b8691234415963a5a857b86425d07': ROLES[3],
+    '0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929': ROLES[5],
+}
+
 module.exports = {
+    ACCOUNT_STATE,
+    LISTING_STATE,
+    ROLES,
+    ROLES_MAPPING,
+    ADMIN_ROLES_MAPPING,
+
     AVATAR_PATH,
     AVATAR_PATH_DB,
     AVATAR_PATH_DB_DEFAULT,
+
     ITEM_PATH,
     ITEM_PATH_RAW,
+    ITEM_PATH_DB_DEFAULT,
+
     DEFAULT_PICTURE,
     DEFAULT_PICTURE_DB,
-    ITEM_PATH_DB_DEFAULT,
+
     API_WS_ENDPOINT,
     API_HTTP_ENDPOINT,
+
     NETWORK_ID,
 }
