@@ -1,4 +1,5 @@
 const { Schema, model } = require("mongoose")
+const { LISTING_STATE } = require("../configs/constants")
 
 const listingSchema = new Schema({
   _id: {
@@ -73,9 +74,9 @@ const listingSchema = new Schema({
       maxlength: 64,
     }
   },
-  state: {
+  status: {
     type: String,
-    enum: ['LISTING', 'SOLD', 'DELIVERED', 'CANCELED']
+    enum: LISTING_STATE,
   },
 }, { timestamps: true })
 

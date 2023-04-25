@@ -24,7 +24,7 @@ const itemSchema = new Schema({
   pictures: [{
     file_uri: {
       type: String,
-      default: defaultPicture,
+      default: ITEM_PATH_DB_DEFAULT,
     },
     raw_base64_uri: {
       type: String,

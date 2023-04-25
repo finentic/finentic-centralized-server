@@ -1,5 +1,5 @@
 const { Schema, model } = require("mongoose")
-const { AVATAR_PATH_DB_DEFAULT } = require("../configs/constants")
+const { AVATAR_PATH_DB_DEFAULT, ACCOUNT_STATE, ROLES } = require("../configs/constants")
 
 const accountSchema = new Schema({
   _id: {
@@ -28,21 +28,14 @@ const accountSchema = new Schema({
     type: String,
     default: AVATAR_PATH_DB_DEFAULT,
   },
-  role: [{
+  roles: [{
     type: String,
-    enum: [
-      'DEFAULT_ADMIN',
-      'MODERATOR_ADMIN',
-      'MODERATOR',
-      'TREASURER_ADMIN',
-      'TREASURER',
-      'OPERATOR_ADMIN',
-      'OPERATOR',
-    ]
+    enum: ROLES
   }],
-  state: {
+  status: {
     type: String,
-    enum: ['UNVERIFIED', "VERIFIED", "BANNED"]
+    enum: ACCOUNT_STATE,
+    default: ACCOUNT_STATE[0],
   }
   // cover_photo: {
   //   type: String,
