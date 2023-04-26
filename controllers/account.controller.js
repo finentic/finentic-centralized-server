@@ -3,6 +3,7 @@ const { Account } = require('../models')
 const path = require('path') // path for cut the file extension
 const multer = require('multer')
 const sharp = require('sharp')
+const { Wallet } = require('ethers')
 
 // ==== config  ====<
 sharp.cache(false)
@@ -13,7 +14,7 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, callBack) => {
         // Overwriting the previous avatar
-        const fileName = req.body.address.toLowerCase() + path.extname(file.originalname)
+        const fileName = req.body.account_address.toLowerCase() + path.extname(file.originalname)
         callBack(null, fileName)
     }
 })
@@ -28,7 +29,7 @@ const upload = multer({
         ) callBack(null, true)
         else {
             callBack(null, false)
-            return callBack(new Error('Only .png, .jpg and .jpeg format allowed!'))
+            return callBack(new Error('Account: Only .png, .jpg and .jpeg format allowed!'))
         }
     },
     limits: {
@@ -40,7 +41,7 @@ const upload = multer({
 
 const getAccount = async (req, res) => {
     try {
-        const accountAddress = req.query.address.toLowerCase()
+        const accountAddress = req.query.account_address.toLowerCase()
         const accountExist = await Account.findById(accountAddress).exec()
         if (accountExist) return res.status(200).json(accountExist)
         else {
@@ -57,7 +58,7 @@ const getAccount = async (req, res) => {
 const updateAvatar = (req, res) => {
     upload(req, res, async _err => {
         try {
-            const accountAddress = req.body.address.toLowerCase()
+            const accountAddress = req.body.account_address.toLowerCase()
             const thumbnailPath = AVATAR_PATH + path.basename(req.file.path, path.extname(req.file.filename)) + '_thumb' + path.extname(req.file.filename)
             const thumbnailPathDb = AVATAR_PATH_DB + path.basename(req.file.path, path.extname(req.file.filename)) + '_thumb' + path.extname(req.file.filename)
             await sharp(req.file.path).resize(360, 360, { fit: sharp.fit.cover }).toFile(thumbnailPath)
@@ -70,14 +71,14 @@ const updateAvatar = (req, res) => {
             return res.status(200).json(req.file.path)
         } catch (err) {
             console.error(err)
-            return res.status(415).json({ error: 'An unknown error occurred when uploading.' })
+            return res.status(415).json({ error: 'Account: An unknown error occurred when uploading.' })
         }
     })
 }
 
 const updateName = async (req, res) => {
     try {
-        const accountAddress = req.body.address.toLowerCase()
+        const accountAddress = req.body.account_address.toLowerCase()
         await Account.findByIdAndUpdate(
             accountAddress, { name: req.body.name }
         ).exec()
@@ -90,7 +91,7 @@ const updateName = async (req, res) => {
 
 const updateBio = async (req, res) => {
     try {
-        const accountAddress = req.body.address.toLowerCase()
+        const accountAddress = req.body.account_address.toLowerCase()
         await Account.findByIdAndUpdate(
             accountAddress, { bio: req.body.bio }
         ).exec()
@@ -103,7 +104,7 @@ const updateBio = async (req, res) => {
 
 const updateExternalUrl = async (req, res) => {
     try {
-        const accountAddress = req.body.address.toLowerCase()
+        const accountAddress = req.body.account_address.toLowerCase()
         await Account.findByIdAndUpdate(
             accountAddress,
             { external_url: req.body.external_url }
@@ -115,9 +116,9 @@ const updateExternalUrl = async (req, res) => {
     }
 }
 
-const updateState = (address, state) => {
+const updateState = (account_address, state) => {
     try {
-        const accountAddress = address.toLowerCase()
+        const accountAddress = account_address.toLowerCase()
         Account.findByIdAndUpdate(
             accountAddress, { status: state }
         ).exec()
@@ -140,9 +141,9 @@ const updateStateMulti = (setOfAddress, state) => {
     }
 }
 
-const addRole = (address, role) => {
+const addRole = (account_address, role) => {
     try {
-        const accountAddress = address.toLowerCase()
+        const accountAddress = account_address.toLowerCase()
         Account.findByIdAndUpdate(
             accountAddress,
             { $addToSet: { roles: role } },
@@ -153,9 +154,9 @@ const addRole = (address, role) => {
     }
 }
 
-const removeRole = (address, role) => {
+const removeRole = (account_address, role) => {
     try {
-        const accountAddress = address.toLowerCase()
+        const accountAddress = account_address.toLowerCase()
         Account.findByIdAndUpdate(
             accountAddress,
             { $pull: { roles: role } },
@@ -165,22 +166,23 @@ const removeRole = (address, role) => {
     }
 }
 
-// const create = async (_req, res) => {
-//     try {
-//         const wallet = await new ethers.Wallet.createRandom()
-//         res.status(201).json({
-//             'address': wallet.address,
-//             'mnemonic': wallet.mnemonic.phrase,
-//             'privateKey': wallet.privateKey
-//         })
-//     } catch (error) {
-//         console.error(error)
-//         return res.status(500).json(error)
-//     }
-// }
+const create = (_req, res) => {
+    try {
+        const wallet = Wallet.createRandom()
+        Account({ _id: wallet.address.toLowerCase() }).save()
+        res.status(201).json({
+            'address': wallet.address,
+            'mnemonic': wallet.mnemonic.phrase,
+            'privateKey': wallet.privateKey
+        })
+    } catch (error) {
+        console.error(error)
+        return res.status(500).json(error)
+    }
+}
 
 module.exports = {
-    // create,
+    create,
     updateState,
     updateStateMulti,
     addRole,

@@ -1,4 +1,4 @@
-const { ACCOUNT_STATE, ROLES, ROLES_MAPPING, ADMIN_ROLES_MAPPING } = require("../configs/constants")
+const { ACCOUNT_STATE, ROLES_MAPPING, ADMIN_ROLES_MAPPING } = require("../configs/constants")
 const { controlCenterContract } = require("../configs/contracts")
 const {
     updateState,
