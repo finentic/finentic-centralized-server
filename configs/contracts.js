@@ -19,7 +19,7 @@ const {
 const controlCenterContract = provider => new Contract(CONTROL_CENTER_ADDRESS, ControlCenter.abi, provider)
 const marketplaceContract = provider => new Contract(MARKETPLACE_ADDRESS, Marketplace.abi, provider)
 const sharedContract = provider => new Contract(SHARED_ADDRESS, Shared.abi, provider)
-
+const collectionFactoryContract = provider => new Contract(COLLECTION_FACTORY_ADDRESS, CollectionFactory.abi, provider)
 
 module.exports = {
     ControlCenter,
@@ -35,6 +35,7 @@ module.exports = {
     COLLECTION_FACTORY_ADDRESS,
     TREASURY_ADDRESS,
     MARKETPLACE_ADDRESS,
+    collectionFactoryContract,
     controlCenterContract,
     marketplaceContract,
     sharedContract,

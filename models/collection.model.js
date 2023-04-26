@@ -1,5 +1,5 @@
 const { Schema, model } = require("mongoose")
-const { ITEM_PATH_DB_DEFAULT } = require("../configs/constants")
+const { COLLECTION_PATH_DB_DEFAULT } = require("../configs/constants")
 
 const collectionSchema = new Schema({
   _id: {
@@ -17,9 +17,13 @@ const collectionSchema = new Schema({
     required: true,
     maxlength: 32,
   },
+  picture: {
+    type: String,
+    default: COLLECTION_PATH_DB_DEFAULT
+  },
   thumbnail: {
     type: String,
-    default: ITEM_PATH_DB_DEFAULT
+    default: COLLECTION_PATH_DB_DEFAULT
   },
   total_supply: {
     type: String,
@@ -31,6 +35,12 @@ const collectionSchema = new Schema({
     required: true,
     ref: 'Account'
   },
+  collected_by: [{
+    type: String,
+    length: 42,
+    required: true,
+    ref: 'Account'
+  }]
 }, { timestamps: true })
 
 module.exports = model('Collection', collectionSchema)

@@ -12,6 +12,10 @@ const ITEM_PATH = 'public/pictures/items/'
 const ITEM_PATH_RAW = '/picture/raw/'
 const ITEM_PATH_DB_DEFAULT = 'pictures/items/default.jpg'
 
+const COLLECTION_PATH = 'public/pictures/collections/'
+const COLLECTION_PATH_DB = 'public/pictures/collections/'
+const COLLECTION_PATH_DB_DEFAULT = 'pictures/collections/default.jpg'
+
 const DEFAULT_PICTURE = 'public/pictures/default.jpg'
 const DEFAULT_PICTURE_DB = 'pictures/default.jpg'
 
@@ -55,6 +59,10 @@ module.exports = {
     ITEM_PATH,
     ITEM_PATH_RAW,
     ITEM_PATH_DB_DEFAULT,
+
+    COLLECTION_PATH,
+    COLLECTION_PATH_DB,
+    COLLECTION_PATH_DB_DEFAULT,
 
     DEFAULT_PICTURE,
     DEFAULT_PICTURE_DB,
