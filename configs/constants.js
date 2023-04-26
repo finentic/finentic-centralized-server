@@ -20,7 +20,7 @@ const DEFAULT_PICTURE = 'public/pictures/default.jpg'
 const DEFAULT_PICTURE_DB = 'pictures/default.jpg'
 
 const ACCOUNT_STATE = ['UNVERIFIED', "VERIFIED", "BANNED"]
-const LISTING_STATE = ['LISTING', 'SOLD', 'DELIVERED', 'CANCELED']
+const ITEM_STATE = ['CREATED', 'LISTING', 'SOLD', 'DELIVERED', 'CANCELED', 'HIDDEN']
 const ROLES = [
     'DEFAULT_ADMIN',
     'MODERATOR_ADMIN',
@@ -47,7 +47,7 @@ const ADMIN_ROLES_MAPPING = {
 
 module.exports = {
     ACCOUNT_STATE,
-    LISTING_STATE,
+    ITEM_STATE,
     ROLES,
     ROLES_MAPPING,
     ADMIN_ROLES_MAPPING,

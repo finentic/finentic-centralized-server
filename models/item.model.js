@@ -1,5 +1,5 @@
 const { Schema, model } = require("mongoose")
-const { ITEM_PATH_DB_DEFAULT, LISTING_STATE } = require("../configs/constants")
+const { ITEM_PATH_DB_DEFAULT, ITEM_STATE } = require("../configs/constants")
 
 const itemSchema = new Schema({
   _id: {
@@ -20,7 +20,7 @@ const itemSchema = new Schema({
   from_collection: {
     type: String,
     required: true,
-    ref: 'Account'
+    ref: 'Collection'
   },
   pictures: [{
     file_uri: {
@@ -79,60 +79,15 @@ const itemSchema = new Schema({
     tx_hash: {
       type: String,
       length: 66,
-      required: true,
       // default: '0x0000000000000000000000000000000000000000000000000000000000000000',
     },
     timestamp: {
       type: String,
     }
   }],
-  is_show: {
-    type: Boolean,
-    default: false,
-  },
-  token_payment: {
+  payment_token: {
     type: String,
     length: 42,
-  },
-  seller: {
-    type: String,
-    ref: 'Account'
-  },
-  auction: {
-    startTime: {
-      type: String,
-    },
-    endTime: {
-      type: String,
-    },
-    bidder: {
-      type: String,
-      ref: 'Account'
-    },
-    amount: {
-      type: String,
-    },
-    gap: {
-      type: String,
-    },
-    history: [{
-      bidder: {
-        type: String,
-        ref: 'Account'
-      },
-      amount: {
-        type: String,
-      },
-      tx_hash: {
-        type: String,
-        length: 66,
-        required: true,
-        // default: '0x0000000000000000000000000000000000000000000000000000000000000000',
-      },
-      timestamp: {
-        type: String,
-      }
-    }]
   },
   price: {
     type: String,
@@ -141,6 +96,32 @@ const itemSchema = new Schema({
     type: String,
     ref: 'Account'
   },
+  start_time: {
+    type: String,
+  },
+  end_time: {
+    type: String,
+  },
+  gap: {
+    type: String,
+  },
+  auction_history: [{
+    bidder: {
+      type: String,
+      ref: 'Account'
+    },
+    amount: {
+      type: String,
+    },
+    tx_hash: {
+      type: String,
+      length: 66,
+      // default: '0x0000000000000000000000000000000000000000000000000000000000000000',
+    },
+    timestamp: {
+      type: String,
+    }
+  }],
   delivery: {
     from: {
       type: String,
@@ -155,9 +136,13 @@ const itemSchema = new Schema({
       maxlength: 64,
     }
   },
-  status: {
+  next_update_deadline: {
     type: String,
-    enum: LISTING_STATE,
+  },
+  state: {
+    type: String,
+    enum: ITEM_STATE,
+    default: ITEM_STATE[5],
   },
 }, { timestamps: true })
 

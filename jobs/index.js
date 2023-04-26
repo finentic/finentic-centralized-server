@@ -1,7 +1,9 @@
 const { providers } = require('ethers')
 const { NETWORK_ID, API_WS_ENDPOINT } = require('../configs/constants')
-const { controlCenterJobs } = require("./control-center.jobs")
 const { collectionFactoryJobs } = require('./collection-factory.jobs')
+const { controlCenterJobs } = require("./control-center.jobs")
+const { marketplaceJobs } = require('./marketplace.jobs')
+const { sharedJobs } = require('./shared.jobs')
 
 let provider
 const thirtyMinutes = 1000 * 60 * 30 // 1000ms * 60s * 30m
@@ -21,8 +23,10 @@ const triggerJobs = async () => {
     // call every 3 minutes to keep web socket alive
     setInterval(() => provider.getBlockNumber(), threeMinutes)
 
-    controlCenterJobs(provider)
     collectionFactoryJobs(provider)
+    controlCenterJobs(provider)
+    marketplaceJobs(provider)
+    sharedJobs(provider)
 }
 
 module.exports = {

@@ -1,11 +1,10 @@
-require('dotenv').config({ path: '../.env' })
 const fs = require('fs')
 const { dirname, extname, basename } = require('path') // path for cut the file extension
 const multer = require('multer')
 const sharp = require('sharp')
 const { Item } = require('../models')
 const { solidityKeccak256 } = require('ethers/lib/utils')
-const { ITEM_PATH, ITEM_PATH_RAW } = require('../configs/constants')
+const { ITEM_PATH, ITEM_PATH_RAW, ITEM_STATE } = require('../configs/constants')
 const toItemId = (from_collection_address, token_id) => `${from_collection_address.toLowerCase()}_${token_id}`
 
 sharp.cache(false)
@@ -49,7 +48,6 @@ const getAllItemsOfAccount = async (req, res) => {
         const accountAddress = req.query.account_address.toLowerCase()
         const items = await Item
             .find({ owner: accountAddress })
-            .where({ is_show: true })
             .select({
                 name: 1,
                 thumbnail: 1,
@@ -69,7 +67,6 @@ const getItemById = async (req, res) => {
         const itemId = req.query.item_id.toLowerCase()
         const item = await Item
             .findById(itemId)
-            .where({ is_show: true })
             .populate('owner', 'name avatar_thumb')
             .populate({
                 path: 'from_collection',
@@ -110,13 +107,13 @@ const searchItem = async (req, res) => {
 }
 
 const searchItemByName = (keywords) => Item
-    .find(({ name: { $regex: keywords, $options: 'i' }, is_show: true }))
+    .find(({ name: { $regex: keywords, $options: 'i' } }))
     .select({
         name: 1,
         thumbnail: 1,
         from_collection: 1,
         is_phygital: 1,
-        is_show: 1,
+        state: 1,
         owner: 1,
     })
     .populate('owner', 'name avatar_thumb')
@@ -132,13 +129,13 @@ const searchItemByName = (keywords) => Item
     .exec()
 
 const searchItemById = (itemId) => Item
-    .find({ _id: itemId, is_show: true })
+    .find({ _id: itemId })
     .select({
         name: 1,
         thumbnail: 1,
         from_collection: 1,
         is_phygital: 1,
-        is_show: 1,
+        state: 1,
         owner: 1,
     })
     .populate('owner', 'name avatar_thumb')
@@ -240,11 +237,6 @@ const createItem = async (req, res) => {
     })
 }
 
-const updateStatus = async (from_collection_address, token_id) => {
-    const itemId = toItemId(from_collection_address, token_id)
-    await Item.findByIdAndUpdate(itemId, { is_show: true }).exec()
-}
-
 const getPictureInBase64Encode = async (req, res) => {
     try {
         const itemId = req.params.item_id
@@ -261,7 +253,7 @@ const getPictureInBase64Encode = async (req, res) => {
 const updateOwner = async (
     from_collection_address,
     token_id,
-    owner_address,
+    owner,
     tx_hash,
     timestamp,
 ) => {
@@ -271,24 +263,144 @@ const updateOwner = async (
         {
             $addToSet: {
                 ownership_history: {
-                    owner: $owner,
-                    tx_hash: tx_hash,
-                    timestamp: timestamp,
+                    owner,
+                    tx_hash,
+                    timestamp,
                 },
             },
-            owner: owner_address
+            owner
         },
         { upsert: true }
     ).exec()
 }
 
+const updateState = async (from_collection_address, token_id, item_state) => {
+    const itemId = toItemId(from_collection_address, token_id)
+    await Item.findByIdAndUpdate(itemId, { state: item_state }).exec()
+}
+
+const listForAuction = (
+    from_collection_address,
+    token_id,
+    start_time,
+    end_time,
+    payment_token,
+    amount,
+    gap,
+) => {
+    const itemId = toItemId(from_collection_address, token_id)
+    Item.findByIdAndUpdate(
+        itemId,
+        {
+            start_time,
+            end_time,
+            price: amount,
+            gap,
+            payment_token,
+            state: ITEM_STATE[1],
+        },
+    ).exec()
+}
+
+const biddingForAuction = (
+    from_collection_address,
+    token_id,
+    bidder,
+    amount,
+    tx_hash,
+    timestamp,
+) => {
+    const itemId = toItemId(from_collection_address, token_id)
+    Item.findByIdAndUpdate(
+        itemId,
+        {
+            $push: {
+                auction_history: {
+                    bidder,
+                    amount,
+                    tx_hash,
+                    timestamp,
+                },
+            },
+            buyer: bidder,
+            price: amount,
+        },
+    ).exec()
+}
+
+const listForBuyNow = (
+    from_collection_address,
+    token_id,
+    payment_token,
+    price,
+) => {
+    const itemId = toItemId(from_collection_address, token_id)
+    Item.findByIdAndUpdate(
+        itemId,
+        {
+            price,
+            payment_token,
+            state: ITEM_STATE[1]
+        },
+    ).exec()
+}
+
+const phygitalItemUpdate = (
+    from_collection_address,
+    token_id,
+    phygital_item_state,
+    next_update_deadline,
+) => {
+    const itemId = toItemId(from_collection_address, token_id)
+    Item.findByIdAndUpdate(
+        itemId,
+        {
+            price,
+            payment_token,
+            state: phygital_item_state,
+            next_update_deadline,
+        },
+    ).exec()
+}
+
+const removeItemListed = (
+    from_collection_address,
+    token_id,
+    state,
+) => {
+    const itemId = toItemId(from_collection_address, token_id)
+    Item.findByIdAndUpdate(
+        itemId,
+        {
+            $unset: {
+                price: 1,
+                payment_token: 1,
+                next_update_deadline: 1,
+                delivery: 1,
+                auction_history: 1,
+                gap: 1,
+                end_time: 1,
+                start_time: 1,
+                buyer: 1,
+
+            },
+            state: state,
+        },
+    ).exec()
+}
+
 module.exports = {
     getAllItemsOfAccount,
-    updateStatus,
     getRawMetadata,
     getItemById,
     getPictureInBase64Encode,
     createItem,
     searchItem,
     updateOwner,
+    updateState,
+    listForAuction,
+    biddingForAuction,
+    listForBuyNow,
+    phygitalItemUpdate,
+    removeItemListed,
 }
