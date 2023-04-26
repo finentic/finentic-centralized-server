@@ -1,5 +1,5 @@
 const { Schema, model } = require("mongoose")
-const { ITEM_PATH_DB_DEFAULT } = require("../configs/constants")
+const { ITEM_PATH_DB_DEFAULT, LISTING_STATE } = require("../configs/constants")
 
 const itemSchema = new Schema({
   _id: {
@@ -17,9 +17,10 @@ const itemSchema = new Schema({
     type: Boolean,
     default: false,
   },
-  thumbnail: {
+  from_collection: {
     type: String,
-    default: ITEM_PATH_DB_DEFAULT
+    required: true,
+    ref: 'Account'
   },
   pictures: [{
     file_uri: {
@@ -54,6 +55,10 @@ const itemSchema = new Schema({
     required: true,
     // default: '0x0000000000000000000000000000000000000000000000000000000000000000',
   },
+  thumbnail: {
+    type: String,
+    default: ITEM_PATH_DB_DEFAULT
+  },
   description: {
     type: String,
     maxlength: 2048,
@@ -63,7 +68,6 @@ const itemSchema = new Schema({
   },
   owner: {
     type: String,
-    length: 42,
     required: true,
     ref: 'Account'
   },
@@ -72,13 +76,89 @@ const itemSchema = new Schema({
       type: String,
       ref: 'Account'
     },
+    tx_hash: {
+      type: String,
+      length: 66,
+      required: true,
+      // default: '0x0000000000000000000000000000000000000000000000000000000000000000',
+    },
     timestamp: {
       type: String,
     }
   }],
   is_show: {
     type: Boolean,
+    default: false,
   },
-})
+  token_payment: {
+    type: String,
+    length: 42,
+  },
+  seller: {
+    type: String,
+    ref: 'Account'
+  },
+  auction: {
+    startTime: {
+      type: String,
+    },
+    endTime: {
+      type: String,
+    },
+    bidder: {
+      type: String,
+      ref: 'Account'
+    },
+    amount: {
+      type: String,
+    },
+    gap: {
+      type: String,
+    },
+    history: [{
+      bidder: {
+        type: String,
+        ref: 'Account'
+      },
+      amount: {
+        type: String,
+      },
+      tx_hash: {
+        type: String,
+        length: 66,
+        required: true,
+        // default: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      },
+      timestamp: {
+        type: String,
+      }
+    }]
+  },
+  price: {
+    type: String,
+  },
+  buyer: {
+    type: String,
+    ref: 'Account'
+  },
+  delivery: {
+    from: {
+      type: String,
+      maxlength: 64,
+    },
+    to: {
+      type: String,
+      maxlength: 64,
+    },
+    now: {
+      type: String,
+      maxlength: 64,
+    }
+  },
+  status: {
+    type: String,
+    enum: LISTING_STATE,
+  },
+}, { timestamps: true })
 
 module.exports = model('Item', itemSchema)
