@@ -48,11 +48,9 @@ const marketplaceJobs = async provider => {
 
     MarketplaceContract.on('RemoveItemForBuyNow',
         (nftContract, tokenId) =>
-            listForBuyNow(
+            removeItemListed(
                 nftContract,
                 tokenId,
-                paymentToken,
-                price,
             )
     )
 

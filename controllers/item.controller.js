@@ -43,6 +43,26 @@ const uploadMulti = multer({
     }
 }).array('files', 10) // max 100MB
 
+const uploadSingle = multer({
+    // The function should call `callBack` with a boolean to indicate if the file should be accepted
+    fileFilter: (_req, file, callBack) => {
+        if (
+            file.mimetype == "image/png"
+            || file.mimetype == "image/jpg"
+            || file.mimetype == "image/jpeg"
+        ) {
+            callBack(null, true)
+        } else {
+            console.error('Item: Only .png, .jpg and .jpeg format allowed!')
+            callBack(null, false)
+        }
+    },
+    storage: storage,
+    limits: {
+        fileSize: (8 * 1024 * 1024) * 10, // max 10MB
+    }
+}).single('file') // max 10MB
+
 const getAllItemsOfAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
@@ -94,7 +114,6 @@ const searchItem = async (req, res) => {
     try {
         const { keywords } = req.query
         const keywordsLength = keywords.trim().length
-
         if (keywordsLength == 0) return res.status(200).json([])
 
         const items = (keywordsLength > 42 && keywords.substring(0, 2) == "0x") // address length
@@ -102,6 +121,17 @@ const searchItem = async (req, res) => {
             : await searchItemByName(keywords)
         return res.status(200).json(items)
     } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+
+const getItems = async (req, res) => {
+    try {
+        const items = await searchItemByName('')
+        return res.status(200).json(items)
+    } catch (error) {
+        console.log(error)
         return res.status(404).json(error)
     }
 }
@@ -115,6 +145,7 @@ const searchItemByName = (keywords) => Item
         is_phygital: 1,
         state: 1,
         owner: 1,
+        price: 1,
     })
     .populate('owner', 'name avatar_thumb')
     .populate({
@@ -193,6 +224,47 @@ const getRawMetadata = async (req, res) => {
     }
 }
 
+const createItemSingle = async (req, res) => {
+    uploadSingle(req, res, async (_err) => {
+        try {
+            const pictures = []
+            const { path, filename } = req.file
+
+            req.body._id = toItemId(req.body.from_collection_address, req.body.token_id)
+            req.body.owner = req.body.owner_address.toLowerCase()
+            req.body.from_collection = req.body.from_collection_address.toLowerCase()
+
+
+            const thumbnailPath = `${dirname(path)}/${basename(path, extname(filename))}_thumb${extname(filename)}`
+            const thumbnailPathDb = `${dirname(path.substring(7))}/${basename(path, extname(filename))}_thumb${extname(filename)}`
+            await sharp(path)
+                .resize(360, 360, { fit: sharp.fit.cover })
+                .toFile(thumbnailPath)
+
+            // convert binary data to base64 encoded string
+            const base64EncodePicture = fs.readFileSync(req.file.path, 'base64')
+            const hashed_raw = solidityKeccak256(['string'], [base64EncodePicture])
+            pictures.push({
+                file_uri: `${dirname(req.file.path.substring(7))}/${req.file.filename}`,
+                raw_base64_uri: `${ITEM_PATH_RAW}${dirname(req.file.path.substring(22))}/${req.file.filename}`,
+                raw_base64_hashed: hashed_raw,
+            })
+            req.body.pictures = pictures
+            req.body.thumbnail = thumbnailPathDb
+
+            const newItem = new Item(req.body)
+            await newItem.save()
+            const metadata = await getRawMetadataById(newItem._id)
+            const hashedMetadata = solidityKeccak256(['string'], [JSON.stringify(metadata)])
+            await Item.findByIdAndUpdate(newItem._id, { hashed_metadata: hashedMetadata }).exec()
+            return res.status(201).json({ hashed_metadata: hashedMetadata })
+        } catch (error) {
+            console.error(error)
+            res.status(415).json({ error: 'Item: An unknown error occurred when uploading.' })
+        }
+    })
+}
+
 const createItem = async (req, res) => {
     uploadMulti(req, res, async (_err) => {
         try {
@@ -201,7 +273,6 @@ const createItem = async (req, res) => {
 
             req.body._id = toItemId(req.body.from_collection_address, req.body.token_id)
             req.body.owner = req.body.owner_address.toLowerCase()
-            req.body.creator = req.body.creator_address.toLowerCase()
             req.body.from_collection = req.body.from_collection_address.toLowerCase()
 
 
@@ -216,9 +287,9 @@ const createItem = async (req, res) => {
                 const base64EncodePicture = fs.readFileSync(element.path, 'base64')
                 const hashed_raw = solidityKeccak256(['string'], [base64EncodePicture])
                 pictures.push({
-                    file: `${dirname(element.path.substring(7))}/${element.filename}`,
-                    raw_base64_encode: `${ITEM_PATH_RAW}${dirname(element.path.substring(22))}/${element.filename}`,
-                    hashed_raw,
+                    file_uri: `${dirname(element.path.substring(7))}/${element.filename}`,
+                    raw_base64_uri: `${ITEM_PATH_RAW}${dirname(element.path.substring(22))}/${element.filename}`,
+                    raw_base64_hashed: hashed_raw,
                 })
             })
             req.body.pictures = pictures
@@ -335,6 +406,7 @@ const listForBuyNow = (
     price,
 ) => {
     const itemId = toItemId(from_collection_address, token_id)
+    console.log(itemId)
     Item.findByIdAndUpdate(
         itemId,
         {
@@ -390,11 +462,13 @@ const removeItemListed = (
 }
 
 module.exports = {
+    getItems,
     getAllItemsOfAccount,
     getRawMetadata,
     getItemById,
     getPictureInBase64Encode,
     createItem,
+    createItemSingle,
     searchItem,
     updateOwner,
     updateState,

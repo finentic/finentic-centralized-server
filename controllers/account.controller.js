@@ -56,8 +56,8 @@ const getAccount = async (req, res) => {
 }
 
 const updateAvatar = (req, res) => {
-    upload(req, res, async _err => {
-        try {
+    try {
+        upload(req, res, async _err => {
             const accountAddress = req.body.account_address.toLowerCase()
             const thumbnailPath = AVATAR_PATH + path.basename(req.file.path, path.extname(req.file.filename)) + '_thumb' + path.extname(req.file.filename)
             const thumbnailPathDb = AVATAR_PATH_DB + path.basename(req.file.path, path.extname(req.file.filename)) + '_thumb' + path.extname(req.file.filename)
@@ -69,11 +69,11 @@ const updateAvatar = (req, res) => {
                 )
                 .exec()
             return res.status(200).json(req.file.path)
-        } catch (err) {
-            console.error(err)
-            return res.status(415).json({ error: 'Account: An unknown error occurred when uploading.' })
-        }
-    })
+        })
+    } catch (err) {
+        console.error(err)
+        return res.status(415).json({ error: 'Account: An unknown error occurred when uploading.' })
+    }
 }
 
 const updateName = async (req, res) => {

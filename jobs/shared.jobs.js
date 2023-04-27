@@ -1,6 +1,7 @@
 const { constants } = require("ethers")
-const { sharedContract, MARKETPLACE_ADDRESS, SHARED_ADDRESS } = require("../configs/contracts")
+const { sharedContract, SHARED_ADDRESS, MARKETPLACE_ADDRESS } = require("../configs/contracts")
 const { updateState, updateOwner } = require("../controllers/item.controller")
+const { ITEM_STATE } = require("../configs/constants")
 
 const sharedJobs = async provider => {
     const SharedContract = sharedContract(provider)
@@ -25,6 +26,8 @@ const sharedJobs = async provider => {
             // burn
             if (to == constants.AddressZero) return updateState(from, tokenId, ITEM_STATE[5])
 
+            if (to == MARKETPLACE_ADDRESS) return;
+
             const timestamp = (await provider.getBlock(event.blockNumber)).timestamp;
             updateOwner(
                 SHARED_ADDRESS,
@@ -34,6 +37,7 @@ const sharedJobs = async provider => {
                 timestamp
             )
         }
+
     )
 }
 

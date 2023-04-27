@@ -7,15 +7,15 @@ require("dotenv").config(() => {
 })
 
 const express = require('express')
+const app = express()
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const mongoose = require('mongoose')
-const app = express()
 const { routers } = require('./routes')
 const { triggerJobs } = require("./jobs")
 
 const PORT = (process.env.PORT || 4000)
-const WHITELIST_ORIGIN = ['https://fxethers.com', 'http://127.0.0.1']
+const WHITELIST_ORIGIN = ['https://finentic.com', 'http://127.0.0.1:3000']
 
 triggerJobs()
 

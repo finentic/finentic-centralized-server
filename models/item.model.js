@@ -49,10 +49,9 @@ const itemSchema = new Schema({
       required: true,
     }
   }],
-  hashedMetadata: {
+  hashed_metadata: {
     type: String,
     length: 66,
-    required: true,
     // default: '0x0000000000000000000000000000000000000000000000000000000000000000',
   },
   thumbnail: {
