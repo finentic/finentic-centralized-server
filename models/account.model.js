@@ -20,11 +20,11 @@ const accountSchema = new Schema({
     type: String,
     maxlength: 64,
   },
-  avatar: {
+  picture: {
     type: String,
     default: AVATAR_PATH_DB_DEFAULT,
   },
-  avatar_thumb: {
+  thumbnail: {
     type: String,
     default: AVATAR_PATH_DB_DEFAULT,
   },
@@ -35,7 +35,7 @@ const accountSchema = new Schema({
   status: {
     type: String,
     enum: ACCOUNT_STATE,
-    default: ACCOUNT_STATE[0],
+    default: ACCOUNT_STATE.UNVERIFIED,
   }
   // cover_photo: {
   //   type: String,

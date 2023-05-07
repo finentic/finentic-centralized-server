@@ -25,10 +25,6 @@ const collectionSchema = new Schema({
     type: String,
     default: COLLECTION_PATH_DB_DEFAULT
   },
-  total_supply: {
-    type: String,
-    default: '0'
-  },
   creator: {
     type: String,
     length: 42,

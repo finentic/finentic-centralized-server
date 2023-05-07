@@ -11,7 +11,7 @@ const itemSchema = new Schema({
   name: {
     type: String,
     required: true,
-    maxlength: 32,
+    maxlength: 64,
   },
   is_phygital: {
     type: Boolean,
@@ -64,14 +64,20 @@ const itemSchema = new Schema({
   },
   external_url: {
     type: String,
+    maxlength: 128,
   },
   owner: {
     type: String,
     required: true,
     ref: 'Account'
   },
+  creator: {
+    type: String,
+    required: true,
+    ref: 'Account'
+  },
   ownership_history: [{
-    owner: {
+    account: {
       type: String,
       ref: 'Account'
     },
@@ -104,8 +110,8 @@ const itemSchema = new Schema({
   gap: {
     type: String,
   },
-  auction_history: [{
-    bidder: {
+  price_history: [{
+    account: {
       type: String,
       ref: 'Account'
     },
@@ -141,7 +147,7 @@ const itemSchema = new Schema({
   state: {
     type: String,
     enum: ITEM_STATE,
-    default: ITEM_STATE[5],
+    default: ITEM_STATE.HIDDEN,
   },
 }, { timestamps: true })
 
