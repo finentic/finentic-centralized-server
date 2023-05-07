@@ -9,19 +9,18 @@ const { Wallet } = require('ethers')
 sharp.cache(false)
 
 const storage = multer.diskStorage({
-    destination: (_req, _file, callBack) => {
+    destination: (req, _file, callBack) => {
         callBack(null, AVATAR_PATH)
     },
-    filename: (req, file, callBack) => {
+    filename: (_req, file, callBack) => {
         // Overwriting the previous avatar
-        const fileName = req.body.account_address.toLowerCase() + path.extname(file.originalname)
-        callBack(null, fileName)
-    }
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname)
+        callBack(null, uniqueSuffix)
+    },
 })
 
-const upload = multer({
-    storage: storage,
-    fileFilter: (_req, file, callBack) => {
+const uploadSingle = multer({
+    fileFilter: (req, file, callBack) => {
         if (
             file.mimetype == "image/png"
             || file.mimetype == "image/jpg"
@@ -34,7 +33,8 @@ const upload = multer({
     },
     limits: {
         fileSize: (8 * 1024 * 1024) * 2, // 2MB
-    }
+    },
+    storage: storage,
 }).single('file') // field name "body.file"
 // >==== config  ====
 
@@ -56,8 +56,8 @@ const getAccount = async (req, res) => {
 }
 
 const updateAvatar = (req, res) => {
-    try {
-        upload(req, res, async _err => {
+    uploadSingle(req, res, async (_err) => {
+        try {
             const accountAddress = req.body.account_address.toLowerCase()
             const thumbnailPath = AVATAR_PATH + path.basename(req.file.path, path.extname(req.file.filename)) + '_thumb' + path.extname(req.file.filename)
             const thumbnailPathDb = AVATAR_PATH_DB + path.basename(req.file.path, path.extname(req.file.filename)) + '_thumb' + path.extname(req.file.filename)
@@ -68,12 +68,12 @@ const updateAvatar = (req, res) => {
                     { avatar: req.file.path, thumbnail: thumbnailPathDb }
                 )
                 .exec()
-            return res.status(200).json(req.file.path)
-        })
-    } catch (err) {
-        console.error(err)
-        return res.status(415).json({ error: 'Account: An unknown error occurred when uploading.' })
-    }
+            return res.status(200).json(thumbnailPathDb)
+        } catch (err) {
+            console.error(err)
+            return res.status(415).json({ error: 'Account: An unknown error occurred when uploading.' })
+        }
+    })
 }
 
 const updateName = async (req, res) => {
