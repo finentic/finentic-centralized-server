@@ -335,6 +335,7 @@ const updateOwnerAndState = async (
     timestamp,
 ) => {
     const itemId = toItemId(from_collection_address, token_id)
+    console.info('UpdateOwnerAndState: ', itemId)
     await Item.findByIdAndUpdate(
         itemId,
         {
@@ -367,6 +368,7 @@ const listForAuction = (
     gap,
 ) => {
     const itemId = toItemId(from_collection_address, token_id)
+    console.info('ListForAuction: ', itemId)
     Item.findByIdAndUpdate(
         itemId,
         {
@@ -389,6 +391,7 @@ const biddingForAuction = (
     timestamp,
 ) => {
     const itemId = toItemId(from_collection_address, token_id)
+    console.info('BiddingForAuction: ', itemId)
     Item.findByIdAndUpdate(
         itemId,
         {
@@ -413,6 +416,7 @@ const listForBuyNow = (
     price,
 ) => {
     const itemId = toItemId(from_collection_address, token_id)
+    console.info('ListForBuyNow: ', itemId)
     console.log(itemId)
     Item.findByIdAndUpdate(
         itemId,
@@ -431,6 +435,7 @@ const phygitalItemUpdate = (
     next_update_deadline,
 ) => {
     const itemId = toItemId(from_collection_address, token_id)
+    console.info('PhygitalItemUpdate: ', itemId)
     Item.findByIdAndUpdate(
         itemId,
         {
@@ -448,6 +453,7 @@ const removeItemListed = (
     state,
 ) => {
     const itemId = toItemId(from_collection_address, token_id)
+    console.info('RemoveItemListed: ', itemId)
     Item.findByIdAndUpdate(
         itemId,
         {

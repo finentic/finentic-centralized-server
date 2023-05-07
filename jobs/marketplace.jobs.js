@@ -36,6 +36,20 @@ const marketplaceJobs = async provider => {
         }
     )
 
+    MarketplaceContract.on('Invoice',
+        async (buyer, seller, nftContract, tokenId, paymentToken, costs, event) => {
+            const timestamp = (await provider.getBlock(event.blockNumber)).timestamp;
+            biddingForAuction(
+                nftContract,
+                tokenId.toString(),
+                buyer.toLowerCase(),
+                costs,
+                event.transactionHash,
+                timestamp
+            )
+        }
+    )
+
     MarketplaceContract.on('ListForBuyNow',
         (nftContract, tokenId, seller, isPhygital, paymentToken, price) => {
             listForBuyNow(
