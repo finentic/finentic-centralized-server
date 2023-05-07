@@ -6,7 +6,7 @@ const {
     updateExternalUrl,
     create,
 } = require("../controllers/account.controller")
-const { createItem, getItemById, createItemSingle, searchItem, getItems } = require("../controllers/item.controller")
+const { createItem, getItemById, createItemSingle, searchItem, getItems, getRawMetadata, getItemByIdForUpdate, updateItemById } = require("../controllers/item.controller")
 
 const routers = (app) => {
     app.get('/', (_req, res) => res.status(200).json('Finentic centralized server is running.'))
@@ -20,9 +20,11 @@ const routers = (app) => {
 
     app.get('/items/detail', getItemById)
     app.post('/items/create', createItem)
-    app.post('/items/create-single', createItemSingle)
     app.get('/items/search', searchItem)
     app.get('/items/explore', getItems)
+    app.get('/items/raw/:item_id', getRawMetadata)
+    app.get('/items/update/:item_id', getItemByIdForUpdate)
+    app.post('/items/update', updateItemById)
 
 }
 
