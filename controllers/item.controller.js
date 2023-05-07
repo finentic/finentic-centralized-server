@@ -87,26 +87,71 @@ const getItemById = async (req, res) => {
         const itemId = req.query.item_id.toLowerCase()
         const item = await Item
             .findById(itemId)
-            .populate('owner', 'name avatar_thumb')
+            .populate('owner', 'name thumbnail')
             .populate({
                 path: 'from_collection',
                 select: 'name thumbnail',
-                populate: {
-                    path: 'creator',
-                    select: 'name avatar_thumb'
-                }
+            })
+            .populate({
+                path: 'creator',
+                select: 'name thumbnail bio',
             })
             .populate({
                 path: 'ownership_history',
                 populate: {
-                    path: 'owner',
-                    select: 'name avatar_thumb'
+                    path: 'account',
+                    select: 'name thumbnail'
+                }
+            })
+            .populate({
+                path: 'price_history',
+                populate: {
+                    path: 'account',
+                    select: 'name thumbnail'
                 }
             })
             .exec()
         return res.status(200).json(item)
     } catch (error) {
         return res.status(404).json(error)
+    }
+}
+
+const getItemByIdForUpdate = async (req, res) => {
+    try {
+        const itemId = req.params.item_id.toLowerCase()
+        const item = await Item
+            .findById(itemId)
+            .select({
+                name: 1,
+                thumbnail: 1,
+                from_collection: 1,
+                description: 1,
+                external_url: 1,
+                owner: 1,
+            })
+            .populate('owner', 'name thumbnail')
+            .exec()
+        return res.status(200).json(item)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const updateItemById = async (req, res) => {
+    try {
+        const itemId = req.body.item_id.toLowerCase()
+        await Item.findByIdAndUpdate(
+            itemId,
+            {
+                description: req.body.description,
+                external_url: req.body.external_url,
+            }
+        ).exec()
+        return res.status(200).end()
+    } catch (error) {
+        console.error(error)
+        return res.status(500).json(error)
     }
 }
 
@@ -137,7 +182,7 @@ const getItems = async (req, res) => {
 }
 
 const searchItemByName = (keywords) => Item
-    .find(({ name: { $regex: keywords, $options: 'i' } }))
+    .find(({ name: { $regex: keywords, $options: 'i' }, state: { $ne: ITEM_STATE.HIDDEN } }))
     .select({
         name: 1,
         thumbnail: 1,
@@ -147,13 +192,13 @@ const searchItemByName = (keywords) => Item
         owner: 1,
         price: 1,
     })
-    .populate('owner', 'name avatar_thumb')
+    .populate('owner', 'name thumbnail')
     .populate({
         path: 'from_collection',
         select: 'name thumbnail',
         populate: {
             path: 'creator',
-            select: 'name avatar_thumb'
+            select: 'name thumbnail'
         }
     })
     .sort('-createdAt')
@@ -169,13 +214,13 @@ const searchItemById = (itemId) => Item
         state: 1,
         owner: 1,
     })
-    .populate('owner', 'name avatar_thumb')
+    .populate('owner', 'name thumbnail')
     .populate({
         path: 'from_collection',
         select: 'name thumbnail',
         populate: {
             path: 'creator',
-            select: 'name avatar_thumb'
+            select: 'name thumbnail'
         }
     })
     .sort('-createdAt')
@@ -192,13 +237,13 @@ const getRawMetadataById = async (itemId) => {
             is_phygital: 1,
             properties: 1,
             pictures: {
-                hashed_raw: 1,
+                raw_base64_hashed: 1,
             },
         })
         .exec()
 
     // remove object _id
-    const pictures = itemMetadata.pictures.map(picture => picture.hashed_raw)
+    const pictures = itemMetadata.pictures.map(picture => picture.raw_base64_hashed)
     const properties = itemMetadata.properties.map(property => new Object({
         name: property.name,
         value: property.value,
@@ -224,47 +269,6 @@ const getRawMetadata = async (req, res) => {
     }
 }
 
-const createItemSingle = async (req, res) => {
-    uploadSingle(req, res, async (_err) => {
-        try {
-            const pictures = []
-            const { path, filename } = req.file
-
-            req.body._id = toItemId(req.body.from_collection_address, req.body.token_id)
-            req.body.owner = req.body.owner_address.toLowerCase()
-            req.body.from_collection = req.body.from_collection_address.toLowerCase()
-
-
-            const thumbnailPath = `${dirname(path)}/${basename(path, extname(filename))}_thumb${extname(filename)}`
-            const thumbnailPathDb = `${dirname(path.substring(7))}/${basename(path, extname(filename))}_thumb${extname(filename)}`
-            await sharp(path)
-                .resize(360, 360, { fit: sharp.fit.cover })
-                .toFile(thumbnailPath)
-
-            // convert binary data to base64 encoded string
-            const base64EncodePicture = fs.readFileSync(req.file.path, 'base64')
-            const hashed_raw = solidityKeccak256(['string'], [base64EncodePicture])
-            pictures.push({
-                file_uri: `${dirname(req.file.path.substring(7))}/${req.file.filename}`,
-                raw_base64_uri: `${ITEM_PATH_RAW}${dirname(req.file.path.substring(22))}/${req.file.filename}`,
-                raw_base64_hashed: hashed_raw,
-            })
-            req.body.pictures = pictures
-            req.body.thumbnail = thumbnailPathDb
-
-            const newItem = new Item(req.body)
-            await newItem.save()
-            const metadata = await getRawMetadataById(newItem._id)
-            const hashedMetadata = solidityKeccak256(['string'], [JSON.stringify(metadata)])
-            await Item.findByIdAndUpdate(newItem._id, { hashed_metadata: hashedMetadata }).exec()
-            return res.status(201).json({ hashed_metadata: hashedMetadata })
-        } catch (error) {
-            console.error(error)
-            res.status(415).json({ error: 'Item: An unknown error occurred when uploading.' })
-        }
-    })
-}
-
 const createItem = async (req, res) => {
     uploadMulti(req, res, async (_err) => {
         try {
@@ -273,30 +277,31 @@ const createItem = async (req, res) => {
 
             req.body._id = toItemId(req.body.from_collection_address, req.body.token_id)
             req.body.owner = req.body.owner_address.toLowerCase()
+            req.body.creator = req.body.owner_address.toLowerCase()
             req.body.from_collection = req.body.from_collection_address.toLowerCase()
 
 
             const thumbnailPath = `${dirname(path)}/${basename(path, extname(filename))}_thumb${extname(filename)}`
             const thumbnailPathDb = `${dirname(path.substring(7))}/${basename(path, extname(filename))}_thumb${extname(filename)}`
             await sharp(path)
-                .resize(360, 360, { fit: sharp.fit.cover })
+                .resize(undefined, 250, { fit: sharp.fit.cover })
                 .toFile(thumbnailPath)
 
             req.files.forEach(async element => {
                 // convert binary data to base64 encoded string
                 const base64EncodePicture = fs.readFileSync(element.path, 'base64')
-                const hashed_raw = solidityKeccak256(['string'], [base64EncodePicture])
+                const raw_base64_hashed = solidityKeccak256(['string'], [base64EncodePicture])
                 pictures.push({
                     file_uri: `${dirname(element.path.substring(7))}/${element.filename}`,
                     raw_base64_uri: `${ITEM_PATH_RAW}${dirname(element.path.substring(22))}/${element.filename}`,
-                    raw_base64_hashed: hashed_raw,
+                    raw_base64_hashed: raw_base64_hashed,
                 })
             })
             req.body.pictures = pictures
             req.body.thumbnail = thumbnailPathDb
 
             const newItem = new Item(req.body)
-            await newItem.save()
+            await Item.findByIdAndUpdate(newItem._id, newItem, { upsert: true }).exec()
             const metadata = await getRawMetadataById(newItem._id)
             const hashedMetadata = solidityKeccak256(['string'], [JSON.stringify(metadata)])
             await Item.findByIdAndUpdate(newItem._id, { hashed_metadata: hashedMetadata }).exec()
@@ -321,10 +326,11 @@ const getPictureInBase64Encode = async (req, res) => {
     }
 }
 
-const updateOwner = async (
+const updateOwnerAndState = async (
     from_collection_address,
     token_id,
     owner,
+    item_state,
     tx_hash,
     timestamp,
 ) => {
@@ -334,12 +340,13 @@ const updateOwner = async (
         {
             $addToSet: {
                 ownership_history: {
-                    owner,
+                    account: owner,
                     tx_hash,
                     timestamp,
                 },
             },
-            owner
+            owner,
+            state: item_state
         },
         { upsert: true }
     ).exec()
@@ -368,7 +375,7 @@ const listForAuction = (
             price: amount,
             gap,
             payment_token,
-            state: ITEM_STATE[1],
+            state: ITEM_STATE.LISTING,
         },
     ).exec()
 }
@@ -386,8 +393,8 @@ const biddingForAuction = (
         itemId,
         {
             $push: {
-                auction_history: {
-                    bidder,
+                price_history: {
+                    account: bidder,
                     amount,
                     tx_hash,
                     timestamp,
@@ -412,7 +419,7 @@ const listForBuyNow = (
         {
             price,
             payment_token,
-            state: ITEM_STATE[1]
+            state: ITEM_STATE.LISTING
         },
     ).exec()
 }
@@ -449,12 +456,10 @@ const removeItemListed = (
                 payment_token: 1,
                 next_update_deadline: 1,
                 delivery: 1,
-                auction_history: 1,
                 gap: 1,
                 end_time: 1,
                 start_time: 1,
                 buyer: 1,
-
             },
             state: state,
         },
@@ -468,13 +473,14 @@ module.exports = {
     getItemById,
     getPictureInBase64Encode,
     createItem,
-    createItemSingle,
     searchItem,
-    updateOwner,
+    updateOwnerAndState,
     updateState,
     listForAuction,
     biddingForAuction,
     listForBuyNow,
     phygitalItemUpdate,
     removeItemListed,
+    updateItemById,
+    getItemByIdForUpdate,
 }

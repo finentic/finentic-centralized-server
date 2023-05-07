@@ -83,14 +83,14 @@ const getAllItemOfCollection = async (req, res) => {
                 thumbnail: 1,
                 from_collection: 1,
             })
-            .populate('owner', 'name avatar_thumb')
+            .populate('owner', 'name thumbnail')
             .populate({
                 path: 'from_collection',
                 select: 'name thumbnail',
                 populate: [
                     {
                         path: 'creator',
-                        select: 'name avatar_thumb'
+                        select: 'name thumbnail'
                     }
                 ]
             })

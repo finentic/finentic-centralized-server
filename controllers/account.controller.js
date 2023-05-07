@@ -65,7 +65,7 @@ const updateAvatar = (req, res) => {
             await Account
                 .findByIdAndUpdate(
                     accountAddress,
-                    { avatar: req.file.path, avatar_thumb: thumbnailPathDb }
+                    { avatar: req.file.path, thumbnail: thumbnailPathDb }
                 )
                 .exec()
             return res.status(200).json(req.file.path)
