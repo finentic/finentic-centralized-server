@@ -13,7 +13,7 @@ const marketplaceJobs = async provider => {
     MarketplaceContract.on('ListForAuction',
         (nftContract, tokenId, _itemAuction) => listForAuction(
             nftContract,
-            tokenId,
+            tokenId.toString(),
             _itemAuction.startTime,
             _itemAuction.endTime,
             _itemAuction.paymentToken,
@@ -23,13 +23,13 @@ const marketplaceJobs = async provider => {
     )
 
     MarketplaceContract.on('BiddingForAuction',
-        async (nftContract, tokenId, _itemAuction, event) => {
+        async (nftContract, tokenId, bidder, amount, event) => {
             const timestamp = (await provider.getBlock(event.blockNumber)).timestamp;
             biddingForAuction(
                 nftContract,
-                tokenId,
-                _itemAuction.bidder,
-                _itemAuction.amount,
+                tokenId.toString(),
+                bidder.toLowerCase(),
+                amount,
                 event.transactionHash,
                 timestamp
             )
@@ -37,36 +37,39 @@ const marketplaceJobs = async provider => {
     )
 
     MarketplaceContract.on('ListForBuyNow',
-        (nftContract, tokenId, seller, isPhygital, paymentToken, price) =>
+        (nftContract, tokenId, seller, isPhygital, paymentToken, price) => {
             listForBuyNow(
                 nftContract,
-                tokenId,
-                paymentToken,
+                tokenId.toString(),
+                paymentToken.toLowerCase(),
                 price,
             )
+        }
     )
 
     MarketplaceContract.on('RemoveItemForBuyNow',
         (nftContract, tokenId) =>
             removeItemListed(
                 nftContract,
-                tokenId,
+                tokenId.toString(),
+                ITEM_STATE.CREATED,
             )
     )
 
     MarketplaceContract.on('PhygitalItemUpdated',
         (nftContract, tokenId, state, nextUpdateDeadline) => {
-            if (state == 0) removeItemListed(nftContract, tokenId, ITEM_STATE[4])
+            tokenId = tokenId.toString()
+            if (state == 0) removeItemListed(nftContract, tokenId, ITEM_STATE.CREATED)
             if (state == 1) phygitalItemUpdate(
                 nftContract,
                 tokenId,
-                ITEM_STATE[2],
+                ITEM_STATE.SOLD,
                 nextUpdateDeadline,
             )
             if (state == 2) removeItemListed(
                 nftContract,
                 tokenId,
-                ITEM_STATE[3],
+                ITEM_STATE.DELIVERED,
             )
         }
 

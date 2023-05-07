@@ -13,37 +13,37 @@ const controlCenterJobs = async provider => {
     // Whitelist
     ControlCenterContract.on(
         'AddToWhitelist',
-        account => updateState(account, ACCOUNT_STATE[1])
+        account => updateState(account, ACCOUNT_STATE.VERIFIED)
     )
     ControlCenterContract.on(
         'RemoveFromWhitelist',
-        account => updateState(account, ACCOUNT_STATE[0])
+        account => updateState(account, ACCOUNT_STATE.UNVERIFIED)
     )
     ControlCenterContract.on(
         'AddMultiToWhitelist',
-        accounts => updateStateMulti(accounts, ACCOUNT_STATE[1])
+        accounts => updateStateMulti(accounts, ACCOUNT_STATE.VERIFIED)
     )
     ControlCenterContract.on(
         'RemoveMultiFromWhitelist',
-        accounts => updateStateMulti(accounts, ACCOUNT_STATE[0])
+        accounts => updateStateMulti(accounts, ACCOUNT_STATE.UNVERIFIED)
     )
 
     // Blacklist
     ControlCenterContract.on(
         'AddToBlacklist',
-        account => updateState(account, ACCOUNT_STATE[2])
+        account => updateState(account, ACCOUNT_STATE.BANNED)
     )
     ControlCenterContract.on(
         'RemoveFromBlacklist',
-        account => updateState(account, ACCOUNT_STATE[0])
+        account => updateState(account, ACCOUNT_STATE.UNVERIFIED)
     )
     ControlCenterContract.on(
         'AddMultiToBlacklist',
-        accounts => updateStateMulti(accounts, ACCOUNT_STATE[2])
+        accounts => updateStateMulti(accounts, ACCOUNT_STATE.BANNED)
     )
     ControlCenterContract.on(
         'RemoveMultiFromBlacklist',
-        accounts => updateStateMulti(accounts, ACCOUNT_STATE[0])
+        accounts => updateStateMulti(accounts, ACCOUNT_STATE.UNVERIFIED)
     )
 
     // Roles
