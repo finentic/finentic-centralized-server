@@ -87,27 +87,27 @@ const getItemById = async (req, res) => {
         const itemId = req.query.item_id.toLowerCase()
         const item = await Item
             .findById(itemId)
-            .populate('owner', 'name thumbnail')
+            .populate('owner', 'name thumbnail status')
             .populate({
                 path: 'from_collection',
                 select: 'name thumbnail',
             })
             .populate({
                 path: 'creator',
-                select: 'name thumbnail bio',
+                select: 'name thumbnail bio status',
             })
             .populate({
                 path: 'ownership_history',
                 populate: {
                     path: 'account',
-                    select: 'name thumbnail'
+                    select: 'name thumbnail status'
                 }
             })
             .populate({
                 path: 'price_history',
                 populate: {
                     path: 'account',
-                    select: 'name thumbnail'
+                    select: 'name thumbnail status'
                 }
             })
             .exec()
@@ -130,7 +130,7 @@ const getItemByIdForUpdate = async (req, res) => {
                 external_url: 1,
                 owner: 1,
             })
-            .populate('owner', 'name thumbnail')
+            .populate('owner', 'name thumbnail status')
             .exec()
         return res.status(200).json(item)
     } catch (error) {
@@ -176,7 +176,7 @@ const getItems = async (req, res) => {
         const items = await searchItemByName('')
         return res.status(200).json(items)
     } catch (error) {
-        console.log(error)
+        console.error(error)
         return res.status(404).json(error)
     }
 }
@@ -192,13 +192,13 @@ const searchItemByName = (keywords) => Item
         owner: 1,
         price: 1,
     })
-    .populate('owner', 'name thumbnail')
+    .populate('owner', 'name thumbnail status')
     .populate({
         path: 'from_collection',
         select: 'name thumbnail',
         populate: {
             path: 'creator',
-            select: 'name thumbnail'
+            select: 'name thumbnail status'
         }
     })
     .sort('-createdAt')
@@ -214,13 +214,13 @@ const searchItemById = (itemId) => Item
         state: 1,
         owner: 1,
     })
-    .populate('owner', 'name thumbnail')
+    .populate('owner', 'name thumbnail status')
     .populate({
         path: 'from_collection',
         select: 'name thumbnail',
         populate: {
             path: 'creator',
-            select: 'name thumbnail'
+            select: 'name thumbnail status'
         }
     })
     .sort('-createdAt')
@@ -273,13 +273,13 @@ const createItem = async (req, res) => {
     uploadMulti(req, res, async (_err) => {
         try {
             const pictures = []
+            const properties = []
             const { path, filename } = req.files[0]
 
             req.body._id = toItemId(req.body.from_collection_address, req.body.token_id)
             req.body.owner = req.body.owner_address.toLowerCase()
             req.body.creator = req.body.owner_address.toLowerCase()
             req.body.from_collection = req.body.from_collection_address.toLowerCase()
-
 
             const thumbnailPath = `${dirname(path)}/${basename(path, extname(filename))}_thumb${extname(filename)}`
             const thumbnailPathDb = `${dirname(path.substring(7))}/${basename(path, extname(filename))}_thumb${extname(filename)}`
@@ -297,11 +297,18 @@ const createItem = async (req, res) => {
                     raw_base64_hashed: raw_base64_hashed,
                 })
             })
+
+            for (const rawProperty of req.body.properties) {
+                const property = JSON.parse(rawProperty)
+                if (property.name) properties.push(property)
+            }
+            req.body.properties = properties.length ? properties : undefined
             req.body.pictures = pictures
             req.body.thumbnail = thumbnailPathDb
 
             const newItem = new Item(req.body)
             await Item.findByIdAndUpdate(newItem._id, newItem, { upsert: true }).exec()
+
             const metadata = await getRawMetadataById(newItem._id)
             const hashedMetadata = solidityKeccak256(['string'], [JSON.stringify(metadata)])
             await Item.findByIdAndUpdate(newItem._id, { hashed_metadata: hashedMetadata }).exec()
@@ -395,7 +402,7 @@ const biddingForAuction = (
     Item.findByIdAndUpdate(
         itemId,
         {
-            $push: {
+            $addToSet: {
                 price_history: {
                     account: bidder,
                     amount,
@@ -416,8 +423,6 @@ const listForBuyNow = (
     price,
 ) => {
     const itemId = toItemId(from_collection_address, token_id)
-    console.info('ListForBuyNow: ', itemId)
-    console.log(itemId)
     Item.findByIdAndUpdate(
         itemId,
         {
@@ -439,8 +444,6 @@ const phygitalItemUpdate = (
     Item.findByIdAndUpdate(
         itemId,
         {
-            price,
-            payment_token,
             state: phygital_item_state,
             next_update_deadline,
         },

@@ -40,12 +40,12 @@ const itemSchema = new Schema({
   properties: [{
     name: {
       type: String,
-      maxlength: 32,
+      maxlength: 16,
       required: true,
     },
     value: {
       type: String,
-      maxlength: 32,
+      maxlength: 16,
       required: true,
     }
   }],
