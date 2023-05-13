@@ -10,13 +10,21 @@ const sharedJobs = async provider => {
         'Transfer',
         async (from, to, tokenId, event) => {
             to = to.toLowerCase()
+            console.log(
+                'Shared Transfer(',
+                from.toLowerCase(),
+                to.toLowerCase(),
+                tokenId.toString(),
+                ')',
+            )
+
             // mint
             if (from == constants.AddressZero) {
                 const timestamp = (await provider.getBlock(event.blockNumber)).timestamp;
                 return updateOwnerAndState(
-                    SHARED_ADDRESS,
-                    tokenId,
-                    to,
+                    SHARED_ADDRESS.toLowerCase(),
+                    tokenId.toString(),
+                    to.toLowerCase(),
                     ITEM_STATE.CREATED,
                     event.transactionHash,
                     timestamp
@@ -24,14 +32,18 @@ const sharedJobs = async provider => {
             }
 
             // burn
-            if (to == constants.AddressZero) return updateState(from, tokenId, ITEM_STATE.HIDDEN)
+            if (to == constants.AddressZero) return updateState(
+                from.toLowerCase(),
+                tokenId.toString(),
+                ITEM_STATE.HIDDEN,
+            )
 
             if (to.toLowerCase() != MARKETPLACE_ADDRESS.toLowerCase()) {
                 const timestamp = (await provider.getBlock(event.blockNumber)).timestamp;
                 return updateOwnerAndState(
-                    SHARED_ADDRESS,
-                    tokenId,
-                    to,
+                    SHARED_ADDRESS.toLowerCase(),
+                    tokenId.toString(),
+                    to.toLowerCase(),
                     ITEM_STATE.CREATED,
                     event.transactionHash,
                     timestamp
@@ -39,8 +51,10 @@ const sharedJobs = async provider => {
             }
         }
     )
+
+    return SharedContract
 }
 
 module.exports = {
-    sharedJobs
+    sharedJobs,
 }
