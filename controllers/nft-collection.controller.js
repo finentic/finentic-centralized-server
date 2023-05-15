@@ -44,20 +44,21 @@ const createCollection = (req, res) => {
     upload(req, res, async _err => {
         try {
             console.log("file", req.file)
-            const collection_address = req.body.collection_address.toLowerCase()
-            const thumbnailPath = COLLECTION_PATH + collection_address + '/thumbnail' + path.extname(req.file.filename)
-            const thumbnailPathDb = COLLECTION_PATH_DB + collection_address + '/thumbnail' + path.extname(req.file.filename)
-            await sharp(req.file.path).resize(360, 360, { fit: sharp.fit.cover }).toFile(thumbnailPath)
+            const collectionAddress = req.body.collection_address.toLowerCase()
+            const thumbnailPath = COLLECTION_PATH + collectionAddress + '/thumbnail' + path.extname(req.file.filename)
+            const thumbnailPathDb = COLLECTION_PATH_DB + collectionAddress + '/thumbnail' + path.extname(req.file.filename)
+            const picturePathDb = `${path.dirname(req.file.path.substring(7))}/${req.file.filename}`
 
+            await sharp(req.file.path).resize(360, 360, { fit: sharp.fit.cover }).toFile(thumbnailPath)
             const newCollection = new NftCollection({
-                _id: collection_address,
+                _id: collectionAddress,
                 creator: req.body.creator_address.toLowerCase(),
                 name: req.body.name,
                 symbol: req.body.symbol,
                 description: req.body.description,
                 external_url: req.body.external_url,
                 thumbnail: thumbnailPathDb,
-                picture: req.file.path,
+                picture: picturePathDb,
             })
 
             await NftCollection.findByIdAndUpdate(newCollection._id, newCollection, { upsert: true }).exec()
@@ -70,25 +71,57 @@ const createCollection = (req, res) => {
     })
 }
 
-const updateCollectionThumbnail = (req, res) => {
+const updateCollectionPicture = (req, res) => {
     upload(req, res, async _err => {
         try {
-            const from_collection_address = req.body.from_collection_address.toLowerCase()
-            const thumbnailPath = COLLECTION_PATH + path.basename(req.file.path, path.extname(req.file.filename)) + '/thumbnail' + path.extname(req.file.filename)
-            const thumbnailPathDb = COLLECTION_PATH_DB + path.basename(req.file.path, path.extname(req.file.filename)) + '/thumbnail' + path.extname(req.file.filename)
+            const collectionAddress = req.body.collection_address.toLowerCase()
+            const thumbnailPath = COLLECTION_PATH + collectionAddress + '/thumbnail' + path.extname(req.file.filename)
+            const thumbnailPathDb = COLLECTION_PATH_DB + collectionAddress + '/thumbnail' + path.extname(req.file.filename)
+            const picturePathDb = `${path.dirname(req.file.path.substring(7))}/${req.file.filename}`
+            console.log(thumbnailPathDb)
+
             await sharp(req.file.path).resize(360, 360, { fit: sharp.fit.cover }).toFile(thumbnailPath)
             await NftCollection
                 .findByIdAndUpdate(
-                    from_collection_address,
-                    { thumbnail: thumbnailPathDb, picture: req.file.path }
+                    collectionAddress,
+                    { thumbnail: thumbnailPathDb, picture: picturePathDb }
                 )
                 .exec()
-            return res.status(200).json(req.file.path)
+            return res.status(200).json(thumbnailPathDb)
         } catch (err) {
             console.error(err)
             return res.status(415).json({ error: 'Collection: An unknown error occurred when uploading.' })
         }
     })
+}
+
+const updateCollectionDescription = async (req, res) => {
+    try {
+        const collectionAddress = req.body.collection_address.toLowerCase()
+        await NftCollection.findByIdAndUpdate(
+            collectionAddress,
+            { description: req.body.description }
+        ).exec()
+        return res.status(200).end()
+    } catch (err) {
+        console.error(err)
+        return res.status(415).json({ error: 'Collection: An unknown error occurred when uploading.' })
+    }
+}
+
+const getCollectionById = async (req, res) => {
+    try {
+        const collectionAddress = req.query.collection_address.toLowerCase()
+        if (collectionAddress.length < 42) return res.status(404)
+
+        const collectionExist = await NftCollection.findById(collectionAddress).exec()
+        if (collectionExist) return res.status(200).json(collectionExist)
+
+        return res.status(404).end()
+    } catch (error) {
+        console.error(error)
+        return res.status(500).json(error)
+    }
 }
 
 const getAllCollectionOfAccount = async (req, res) => {
@@ -99,48 +132,6 @@ const getAllCollectionOfAccount = async (req, res) => {
     } catch (error) {
         console.error(error)
         return res.status(500).json(error)
-    }
-}
-
-const getAllItemOfCollection = async (req, res) => {
-    try {
-        const from_collection_address = req.query.from_collection_address.toLowerCase()
-        const items = await Item
-            .find({ from_collection: from_collection_address })
-            .where({ is_show: true })
-            .select({
-                name: 1,
-                thumbnail: 1,
-                from_collection: 1,
-            })
-            .populate('owner', 'name thumbnail')
-            .populate({
-                path: 'from_collection',
-                select: 'name thumbnail',
-                populate: [
-                    {
-                        path: 'creator',
-                        select: 'name thumbnail'
-                    }
-                ]
-            })
-            .sort('-_id')
-            .exec()
-        return res.status(200).json(items)
-    } catch (error) {
-        console.error(error)
-        return res.status(500).json(error)
-    }
-}
-
-const updateTotalSupply = (from_collection_address, totalSupply) => {
-    try {
-        NftCollection.findByIdAndUpdate(
-            from_collection_address.toLowerCase(),
-            { total_supply: totalSupply }
-        ).exec()
-    } catch (error) {
-        console.error(error)
     }
 }
 
@@ -166,11 +157,10 @@ const createCollectionForAccount = (
 }
 
 module.exports = {
+    getCollectionById,
     createCollection,
     createCollectionForAccount,
     getAllCollectionOfAccount,
-    getAllItemOfCollection,
-    updateCollectionThumbnail,
-    updateTotalSupply,
-
+    updateCollectionPicture,
+    updateCollectionDescription,
 }

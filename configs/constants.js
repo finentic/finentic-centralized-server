@@ -13,7 +13,7 @@ const ITEM_PATH_RAW = '/picture/raw/'
 const ITEM_PATH_DB_DEFAULT = 'pictures/items/default.jpg'
 
 const COLLECTION_PATH = 'public/pictures/collections/'
-const COLLECTION_PATH_DB = 'public/pictures/collections/'
+const COLLECTION_PATH_DB = 'pictures/collections/'
 const COLLECTION_PATH_DB_DEFAULT = 'pictures/collections/default.jpg'
 
 const DEFAULT_PICTURE = 'public/pictures/default.jpg'
