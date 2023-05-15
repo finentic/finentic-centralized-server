@@ -19,8 +19,14 @@ const {
     getAllItemsAuctionListingOfAccount,
     getAllItemsCreatedOfAccount,
     getAllOrdersOfAccount,
+    getAllItemOfCollection,
 } = require("../controllers/item.controller")
-const { createCollection } = require("../controllers/nft-collection.controller")
+const {
+    createCollection,
+    getCollectionById,
+    updateCollectionDescription,
+    updateCollectionPicture,
+} = require("../controllers/nft-collection.controller")
 
 const routers = (app) => {
     app.get('/', (_req, res) => res.status(200).json('Finentic centralized server is running.'))
@@ -37,7 +43,7 @@ const routers = (app) => {
     app.get('/items/account/auction', getAllItemsAuctionListingOfAccount)
     app.get('/items/account/created', getAllItemsCreatedOfAccount)
     app.get('/items/account/orders/sales', getAllOrdersOfAccount)
-    
+
     app.get('/items/detail', getItemById)
     app.post('/items/create', createItem)
     app.get('/items/search', searchItem)
@@ -45,10 +51,12 @@ const routers = (app) => {
     app.get('/items/raw/:item_id', getRawMetadata)
     app.get('/items/update/:item_id', getItemByIdForUpdate)
     app.post('/items/update', updateItemById)
+    app.get('/items/collection', getAllItemOfCollection)
 
+    app.get('/collections', getCollectionById)
     app.post('/collections/create', createCollection)
-    
-
+    app.post('/collections/update-description', updateCollectionDescription)
+    app.post('/collections/update-picture', updateCollectionPicture)
 }
 
 module.exports = {
