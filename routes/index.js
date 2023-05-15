@@ -14,7 +14,13 @@ const {
     getRawMetadata,
     getItemByIdForUpdate,
     updateItemById,
+    getAllItemsOfAccount,
+    getAllItemsFixedPriceListingOfAccount,
+    getAllItemsAuctionListingOfAccount,
+    getAllItemsCreatedOfAccount,
+    getAllOrdersOfAccount,
 } = require("../controllers/item.controller")
+const { createCollection } = require("../controllers/nft-collection.controller")
 
 const routers = (app) => {
     app.get('/', (_req, res) => res.status(200).json('Finentic centralized server is running.'))
@@ -26,6 +32,12 @@ const routers = (app) => {
     app.post('/accounts/update-bio', updateBio)
     app.post('/accounts/update-external-url', updateExternalUrl)
 
+    app.get('/items/account', getAllItemsOfAccount)
+    app.get('/items/account/fixed-price', getAllItemsFixedPriceListingOfAccount)
+    app.get('/items/account/auction', getAllItemsAuctionListingOfAccount)
+    app.get('/items/account/created', getAllItemsCreatedOfAccount)
+    app.get('/items/account/orders/sales', getAllOrdersOfAccount)
+    
     app.get('/items/detail', getItemById)
     app.post('/items/create', createItem)
     app.get('/items/search', searchItem)
@@ -33,6 +45,9 @@ const routers = (app) => {
     app.get('/items/raw/:item_id', getRawMetadata)
     app.get('/items/update/:item_id', getItemByIdForUpdate)
     app.post('/items/update', updateItemById)
+
+    app.post('/collections/create', createCollection)
+    
 
 }
 
