@@ -45,16 +45,17 @@ const uploadSingle = multer({
 const getAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
+        if (accountAddress.length < 42) return res.status(404)
+
         const accountExist = await Account.findById(accountAddress).exec()
         if (accountExist) return res.status(200).json(accountExist)
-        if (accountAddress.length < 42) return res.status(404)
+
         const newAccount = await Account({ _id: accountAddress }).save()
         return res.status(201).json(newAccount)
     } catch (error) {
         console.error(error)
         return res.status(500).json(error)
     }
-
 }
 
 const updateAvatar = (req, res) => {
@@ -63,12 +64,14 @@ const updateAvatar = (req, res) => {
             const accountAddress = req.body.account_address.toLowerCase()
             const thumbnailPath = AVATAR_PATH + accountAddress + '/thumb' + path.extname(req.file.filename)
             const thumbnailPathDb = AVATAR_PATH_DB + accountAddress + '/thumb' + path.extname(req.file.filename)
+            const picturePathDb = `${path.dirname(req.file.path.substring(7))}/${req.file.filename}`
+
             await sharp(req.file.path).resize(360, 360, { fit: sharp.fit.cover }).toFile(thumbnailPath)
             await Account
                 .findByIdAndUpdate(
                     accountAddress,
                     {
-                        picture: req.file.path,
+                        picture: picturePathDb,
                         thumbnail: thumbnailPathDb,
                     }
                 )
