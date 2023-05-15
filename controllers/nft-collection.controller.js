@@ -1,5 +1,6 @@
 const { COLLECTION_PATH, COLLECTION_PATH_DB } = require('../configs/constants')
-const { Collection, Item } = require('../models')
+const { NftCollection, Item } = require('../models')
+const fs = require('fs')
 const path = require('path') // path for cut the file extension
 const multer = require('multer')
 const sharp = require('sharp')
@@ -9,13 +10,13 @@ sharp.cache(false)
 
 const storage = multer.diskStorage({
     destination: (req, _file, callBack) => {
-        const dir = COLLECTION_PATH + req.body.from_collection_address.toLowerCase()
+        const dir = COLLECTION_PATH + req.body.collection_address.toLowerCase()
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
         callBack(null, dir)
     },
-    filename: (req, file, callBack) => {
+    filename: (_req, file, callBack) => {
         // Overwriting the previous picture
-        const fileName = req.body.from_collection_address.toLowerCase() + path.extname(file.originalname)
+        const fileName = 'picture' + path.extname(file.originalname)
         callBack(null, fileName)
     }
 })
@@ -30,7 +31,7 @@ const upload = multer({
         ) callBack(null, true)
         else {
             callBack(null, false)
-            return callBack(new Error('Collection: Only .png, .jpg and .jpeg format allowed!'))
+            return callBack(new Error('NftCollection: Only .png, .jpg and .jpeg format allowed!'))
         }
     },
     limits: {
@@ -39,15 +40,44 @@ const upload = multer({
 }).single('file') // field name "body.file"
 // >==== config  ====
 
+const createCollection = (req, res) => {
+    upload(req, res, async _err => {
+        try {
+            console.log("file", req.file)
+            const collection_address = req.body.collection_address.toLowerCase()
+            const thumbnailPath = COLLECTION_PATH + collection_address + '/thumbnail' + path.extname(req.file.filename)
+            const thumbnailPathDb = COLLECTION_PATH_DB + collection_address + '/thumbnail' + path.extname(req.file.filename)
+            await sharp(req.file.path).resize(360, 360, { fit: sharp.fit.cover }).toFile(thumbnailPath)
+
+            const newCollection = new NftCollection({
+                _id: collection_address,
+                creator: req.body.creator_address.toLowerCase(),
+                name: req.body.name,
+                symbol: req.body.symbol,
+                description: req.body.description,
+                external_url: req.body.external_url,
+                thumbnail: thumbnailPathDb,
+                picture: req.file.path,
+            })
+
+            await NftCollection.findByIdAndUpdate(newCollection._id, newCollection, { upsert: true }).exec()
+            const new_collection = await NftCollection.findById(newCollection._id).exec()
+            return res.status(200).json(new_collection)
+        } catch (err) {
+            console.error(err)
+            return res.status(415).json({ error: 'Collection: An unknown error occurred when uploading.' })
+        }
+    })
+}
 
 const updateCollectionThumbnail = (req, res) => {
     upload(req, res, async _err => {
         try {
             const from_collection_address = req.body.from_collection_address.toLowerCase()
-            const thumbnailPath = COLLECTION_PATH + path.basename(req.file.path, path.extname(req.file.filename)) + '_thumb' + path.extname(req.file.filename)
-            const thumbnailPathDb = COLLECTION_PATH_DB + path.basename(req.file.path, path.extname(req.file.filename)) + '_thumb' + path.extname(req.file.filename)
+            const thumbnailPath = COLLECTION_PATH + path.basename(req.file.path, path.extname(req.file.filename)) + '/thumbnail' + path.extname(req.file.filename)
+            const thumbnailPathDb = COLLECTION_PATH_DB + path.basename(req.file.path, path.extname(req.file.filename)) + '/thumbnail' + path.extname(req.file.filename)
             await sharp(req.file.path).resize(360, 360, { fit: sharp.fit.cover }).toFile(thumbnailPath)
-            await Collection
+            await NftCollection
                 .findByIdAndUpdate(
                     from_collection_address,
                     { thumbnail: thumbnailPathDb, picture: req.file.path }
@@ -64,7 +94,7 @@ const updateCollectionThumbnail = (req, res) => {
 const getAllCollectionOfAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
-        const from_collections = await Collection.find({ creator: accountAddress }).sort('-createdAt').exec()
+        const from_collections = await NftCollection.find({ creator: accountAddress }).sort('-createdAt').exec()
         return res.status(200).json(from_collections)
     } catch (error) {
         console.error(error)
@@ -105,7 +135,7 @@ const getAllItemOfCollection = async (req, res) => {
 
 const updateTotalSupply = (from_collection_address, totalSupply) => {
     try {
-        Collection.findByIdAndUpdate(
+        NftCollection.findByIdAndUpdate(
             from_collection_address.toLowerCase(),
             { total_supply: totalSupply }
         ).exec()
@@ -121,19 +151,22 @@ const createCollectionForAccount = (
     from_collection_symbol,
 ) => {
     try {
-        const newCollection = new Collection({
-            _id: from_collection_address.toLowerCase(),
-            creator: creator_address.toLowerCase(),
-            name: from_collection_name,
-            symbol: from_collection_symbol,
-        })
-        newCollection.save()
+        NftCollection.findByIdAndUpdate(
+            from_collection_address.toLowerCase(),
+            {
+                creator: creator_address.toLowerCase(),
+                name: from_collection_name,
+                symbol: from_collection_symbol,
+            },
+            { upsert: true }
+        ).exec()
     } catch (error) {
         console.error(error)
     }
 }
 
 module.exports = {
+    createCollection,
     createCollectionForAccount,
     getAllCollectionOfAccount,
     getAllItemOfCollection,

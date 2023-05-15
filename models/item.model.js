@@ -20,7 +20,7 @@ const itemSchema = new Schema({
   from_collection: {
     type: String,
     required: true,
-    ref: 'Collection'
+    ref: 'NftCollection'
   },
   pictures: [{
     file_uri: {

@@ -1,6 +1,6 @@
 const { providers } = require('ethers')
 const { NETWORK_ID, API_WS_ENDPOINT } = require('../configs/constants')
-// const { collectionFactoryJobs, CollectionFactoryContract } = require('./collection-factory.jobs')
+const { collectionFactoryJobs } = require('./collection-factory.jobs')
 const { controlCenterJobs } = require("./control-center.jobs")
 const { marketplaceJobs } = require('./marketplace.jobs')
 const { sharedJobs } = require('./shared.jobs')
@@ -12,7 +12,7 @@ const triggerJobs = async () => {
     const network = await provider.getNetwork()
     if (network.chainId != NETWORK_ID) throw Error('Unsupported network ID ' + network.chainId)
 
-    // collectionFactoryJobs(provider)
+    collectionFactoryJobs(provider)
     controlCenterJobs(provider)
     marketplaceJobs(provider)
     sharedJobs(provider)

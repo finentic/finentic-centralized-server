@@ -1,5 +1,5 @@
 const { collectionFactoryContract } = require("../configs/contracts")
-const { createCollectionForAccount } = require("../controllers/collection.controller")
+const { createCollectionForAccount } = require("../controllers/nft-collection.controller")
 
 const collectionFactoryJobs = async provider => {
     const CollectionFactoryContract = collectionFactoryContract(provider)

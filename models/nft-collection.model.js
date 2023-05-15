@@ -1,7 +1,7 @@
 const { Schema, model } = require("mongoose")
 const { COLLECTION_PATH_DB_DEFAULT } = require("../configs/constants")
 
-const collectionSchema = new Schema({
+const nftCollectionSchema = new Schema({
   _id: {
     type: String,
     length: 42,
@@ -16,6 +16,14 @@ const collectionSchema = new Schema({
     type: String,
     required: true,
     maxlength: 32,
+  },
+  description: {
+    type: String,
+    maxlength: 2048,
+  },
+  external_url: {
+    type: String,
+    maxlength: 128,
   },
   picture: {
     type: String,
@@ -39,4 +47,4 @@ const collectionSchema = new Schema({
   }]
 }, { timestamps: true })
 
-module.exports = model('Collection', collectionSchema)
+module.exports = model('NftCollection', nftCollectionSchema)
