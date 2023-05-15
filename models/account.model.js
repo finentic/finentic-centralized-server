@@ -14,7 +14,7 @@ const accountSchema = new Schema({
   },
   bio: {
     type: String,
-    maxlength: 512,
+    maxlength: 256,
   },
   external_url: {
     type: String,
