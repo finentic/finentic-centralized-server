@@ -1,5 +1,6 @@
 const { AVATAR_PATH, AVATAR_PATH_DB } = require('../configs/constants')
 const { Account } = require('../models')
+const fs = require('fs')
 const path = require('path') // path for cut the file extension
 const multer = require('multer')
 const sharp = require('sharp')
@@ -10,17 +11,19 @@ sharp.cache(false)
 
 const storage = multer.diskStorage({
     destination: (req, _file, callBack) => {
-        callBack(null, AVATAR_PATH)
+        const dir = AVATAR_PATH + req.body.account_address.toLowerCase()
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+        callBack(null, dir)
     },
     filename: (_req, file, callBack) => {
-        // Overwriting the previous avatar
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname)
-        callBack(null, uniqueSuffix)
+        // Overwriting the previous picture
+        const fileName = 'picture' + path.extname(file.originalname)
+        callBack(null, fileName)
     },
 })
 
 const uploadSingle = multer({
-    fileFilter: (req, file, callBack) => {
+    fileFilter: (_req, file, callBack) => {
         if (
             file.mimetype == "image/png"
             || file.mimetype == "image/jpg"
@@ -44,10 +47,9 @@ const getAccount = async (req, res) => {
         const accountAddress = req.query.account_address.toLowerCase()
         const accountExist = await Account.findById(accountAddress).exec()
         if (accountExist) return res.status(200).json(accountExist)
-        else {
-            const newAccount = await Account({ _id: accountAddress }).save()
-            return res.status(201).json(newAccount)
-        }
+        if (accountAddress.length < 42) return res.status(404)
+        const newAccount = await Account({ _id: accountAddress }).save()
+        return res.status(201).json(newAccount)
     } catch (error) {
         console.error(error)
         return res.status(500).json(error)
@@ -56,24 +58,27 @@ const getAccount = async (req, res) => {
 }
 
 const updateAvatar = (req, res) => {
-    uploadSingle(req, res, async (_err) => {
-        try {
+    try {
+        uploadSingle(req, res, async (_err) => {
             const accountAddress = req.body.account_address.toLowerCase()
-            const thumbnailPath = AVATAR_PATH + path.basename(req.file.path, path.extname(req.file.filename)) + '_thumb' + path.extname(req.file.filename)
-            const thumbnailPathDb = AVATAR_PATH_DB + path.basename(req.file.path, path.extname(req.file.filename)) + '_thumb' + path.extname(req.file.filename)
+            const thumbnailPath = AVATAR_PATH + accountAddress + '/thumb' + path.extname(req.file.filename)
+            const thumbnailPathDb = AVATAR_PATH_DB + accountAddress + '/thumb' + path.extname(req.file.filename)
             await sharp(req.file.path).resize(360, 360, { fit: sharp.fit.cover }).toFile(thumbnailPath)
             await Account
                 .findByIdAndUpdate(
                     accountAddress,
-                    { avatar: req.file.path, thumbnail: thumbnailPathDb }
+                    {
+                        picture: req.file.path,
+                        thumbnail: thumbnailPathDb,
+                    }
                 )
                 .exec()
             return res.status(200).json(thumbnailPathDb)
-        } catch (err) {
-            console.error(err)
-            return res.status(415).json({ error: 'Account: An unknown error occurred when uploading.' })
-        }
-    })
+        })
+    } catch (err) {
+        console.error(err)
+        return res.status(415).json({ error: 'Account: An unknown error occurred when uploading.' })
+    }
 }
 
 const updateName = async (req, res) => {
