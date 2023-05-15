@@ -6,6 +6,29 @@ const { Item } = require('../models')
 const { solidityKeccak256 } = require('ethers/lib/utils')
 const { ITEM_PATH, ITEM_PATH_RAW, ITEM_STATE } = require('../configs/constants')
 const toItemId = (from_collection_address, token_id) => `${from_collection_address.toLowerCase()}_${token_id}`
+const selectedForItemCard = {
+    name: 1,
+    thumbnail: 1,
+    from_collection: 1,
+    is_phygital: 1,
+    state: 1,
+    owner: 1,
+    price: 1,
+}
+const populatedForItemCard = [
+    {
+        path: 'owner',
+        select: 'name thumbnail status',
+    },
+    {
+        path: 'from_collection',
+        select: 'name thumbnail',
+        populate: {
+            path: 'creator',
+            select: 'name thumbnail status'
+        }
+    },
+]
 
 sharp.cache(false)
 
@@ -68,27 +91,26 @@ const getAllItemsOfAccount = async (req, res) => {
         const accountAddress = req.query.account_address.toLowerCase()
         const items = await Item
             .find(({ owner: accountAddress, state: { $ne: ITEM_STATE.HIDDEN } }))
-            .select({
-                name: 1,
-                thumbnail: 1,
-                from_collection: 1,
-                is_phygital: 1,
-                state: 1,
-                owner: 1,
-                price: 1,
-            })
-            .populate('owner', 'name thumbnail status')
-            .populate({
-                path: 'from_collection',
-                select: 'name thumbnail',
-                populate: {
-                    path: 'creator',
-                    select: 'name thumbnail status'
-                }
-            })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
             .sort('-createdAt')
             .exec()
 
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllItemOfCollection = async (req, res) => {
+    try {
+        const collectionAddress = req.query.collection_address.toLowerCase()
+        const items = await Item
+            .find(({ from_collection: collectionAddress, state: { $ne: ITEM_STATE.HIDDEN } }))
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
         return res.status(200).json(items)
     } catch (error) {
         return res.status(404).json(error)
@@ -104,24 +126,8 @@ const getAllItemsFixedPriceListingOfAccount = async (req, res) => {
                 start_time: { $exists: false },
                 state: ITEM_STATE.LISTING
             }))
-            .select({
-                name: 1,
-                thumbnail: 1,
-                from_collection: 1,
-                is_phygital: 1,
-                state: 1,
-                owner: 1,
-                price: 1,
-            })
-            .populate('owner', 'name thumbnail status')
-            .populate({
-                path: 'from_collection',
-                select: 'name thumbnail',
-                populate: {
-                    path: 'creator',
-                    select: 'name thumbnail status'
-                }
-            })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
             .sort('-createdAt')
             .exec()
 
@@ -140,24 +146,8 @@ const getAllItemsAuctionListingOfAccount = async (req, res) => {
                 start_time: { $exists: true },
                 state: ITEM_STATE.LISTING
             }))
-            .select({
-                name: 1,
-                thumbnail: 1,
-                from_collection: 1,
-                is_phygital: 1,
-                state: 1,
-                owner: 1,
-                price: 1,
-            })
-            .populate('owner', 'name thumbnail status')
-            .populate({
-                path: 'from_collection',
-                select: 'name thumbnail',
-                populate: {
-                    path: 'creator',
-                    select: 'name thumbnail status'
-                }
-            })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
             .sort('-createdAt')
             .exec()
 
@@ -175,24 +165,8 @@ const getAllItemsCreatedOfAccount = async (req, res) => {
                 creator: accountAddress,
                 state: { $ne: ITEM_STATE.HIDDEN },
             }))
-            .select({
-                name: 1,
-                thumbnail: 1,
-                from_collection: 1,
-                is_phygital: 1,
-                state: 1,
-                owner: 1,
-                price: 1,
-            })
-            .populate('owner', 'name thumbnail status')
-            .populate({
-                path: 'from_collection',
-                select: 'name thumbnail',
-                populate: {
-                    path: 'creator',
-                    select: 'name thumbnail status'
-                }
-            })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
             .sort('-createdAt')
             .exec()
 
@@ -210,24 +184,8 @@ const getAllOrdersOfAccount = async (req, res) => {
                 owner: accountAddress,
                 state: { $in: [ITEM_STATE.LISTING, ITEM_STATE.SOLD, ITEM_STATE.DELIVERED, ITEM_STATE.CANCELED] },
             }))
-            .select({
-                name: 1,
-                thumbnail: 1,
-                from_collection: 1,
-                is_phygital: 1,
-                state: 1,
-                owner: 1,
-                price: 1,
-            })
-            .populate('owner', 'name thumbnail status')
-            .populate({
-                path: 'from_collection',
-                select: 'name thumbnail',
-                populate: {
-                    path: 'creator',
-                    select: 'name thumbnail status'
-                }
-            })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
             .sort('-createdAt')
             .exec()
 
@@ -338,46 +296,15 @@ const getItems = async (req, res) => {
 
 const searchItemByName = (keywords) => Item
     .find(({ name: { $regex: keywords, $options: 'i' }, state: { $ne: ITEM_STATE.HIDDEN } }))
-    .select({
-        name: 1,
-        thumbnail: 1,
-        from_collection: 1,
-        is_phygital: 1,
-        state: 1,
-        owner: 1,
-        price: 1,
-    })
-    .populate('owner', 'name thumbnail status')
-    .populate({
-        path: 'from_collection',
-        select: 'name thumbnail',
-        populate: {
-            path: 'creator',
-            select: 'name thumbnail status'
-        }
-    })
+    .select(selectedForItemCard)
+    .populate(populatedForItemCard)
     .sort('-createdAt')
     .exec()
 
 const searchItemById = (itemId) => Item
     .find({ _id: itemId })
-    .select({
-        name: 1,
-        thumbnail: 1,
-        from_collection: 1,
-        is_phygital: 1,
-        state: 1,
-        owner: 1,
-    })
-    .populate('owner', 'name thumbnail status')
-    .populate({
-        path: 'from_collection',
-        select: 'name thumbnail',
-        populate: {
-            path: 'creator',
-            select: 'name thumbnail status'
-        }
-    })
+    .select(selectedForItemCard)
+    .populate(populatedForItemCard)
     .sort('-createdAt')
     .exec()
 
@@ -651,4 +578,5 @@ module.exports = {
     getAllItemsAuctionListingOfAccount,
     getAllItemsCreatedOfAccount,
     getAllOrdersOfAccount,
+    getAllItemOfCollection,
 }
