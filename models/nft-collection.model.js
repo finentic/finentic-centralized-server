@@ -19,7 +19,7 @@ const nftCollectionSchema = new Schema({
   },
   description: {
     type: String,
-    maxlength: 2048,
+    maxlength: 256,
   },
   external_url: {
     type: String,
