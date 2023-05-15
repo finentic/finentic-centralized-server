@@ -67,15 +67,170 @@ const getAllItemsOfAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
         const items = await Item
-            .find({ owner: accountAddress })
+            .find(({ owner: accountAddress, state: { $ne: ITEM_STATE.HIDDEN } }))
             .select({
                 name: 1,
                 thumbnail: 1,
                 from_collection: 1,
+                is_phygital: 1,
+                state: 1,
+                owner: 1,
+                price: 1,
             })
-            .populate('from_collection', 'name')
-            .sort('-updatedAt')
+            .populate('owner', 'name thumbnail status')
+            .populate({
+                path: 'from_collection',
+                select: 'name thumbnail',
+                populate: {
+                    path: 'creator',
+                    select: 'name thumbnail status'
+                }
+            })
+            .sort('-createdAt')
             .exec()
+
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllItemsFixedPriceListingOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find(({
+                owner: accountAddress,
+                start_time: { $exists: false },
+                state: ITEM_STATE.LISTING
+            }))
+            .select({
+                name: 1,
+                thumbnail: 1,
+                from_collection: 1,
+                is_phygital: 1,
+                state: 1,
+                owner: 1,
+                price: 1,
+            })
+            .populate('owner', 'name thumbnail status')
+            .populate({
+                path: 'from_collection',
+                select: 'name thumbnail',
+                populate: {
+                    path: 'creator',
+                    select: 'name thumbnail status'
+                }
+            })
+            .sort('-createdAt')
+            .exec()
+
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllItemsAuctionListingOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find(({
+                owner: accountAddress,
+                start_time: { $exists: true },
+                state: ITEM_STATE.LISTING
+            }))
+            .select({
+                name: 1,
+                thumbnail: 1,
+                from_collection: 1,
+                is_phygital: 1,
+                state: 1,
+                owner: 1,
+                price: 1,
+            })
+            .populate('owner', 'name thumbnail status')
+            .populate({
+                path: 'from_collection',
+                select: 'name thumbnail',
+                populate: {
+                    path: 'creator',
+                    select: 'name thumbnail status'
+                }
+            })
+            .sort('-createdAt')
+            .exec()
+
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllItemsCreatedOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find(({
+                creator: accountAddress,
+                state: { $ne: ITEM_STATE.HIDDEN },
+            }))
+            .select({
+                name: 1,
+                thumbnail: 1,
+                from_collection: 1,
+                is_phygital: 1,
+                state: 1,
+                owner: 1,
+                price: 1,
+            })
+            .populate('owner', 'name thumbnail status')
+            .populate({
+                path: 'from_collection',
+                select: 'name thumbnail',
+                populate: {
+                    path: 'creator',
+                    select: 'name thumbnail status'
+                }
+            })
+            .sort('-createdAt')
+            .exec()
+
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllOrdersOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find(({
+                owner: accountAddress,
+                state: { $in: [ITEM_STATE.LISTING, ITEM_STATE.SOLD, ITEM_STATE.DELIVERED, ITEM_STATE.CANCELED] },
+            }))
+            .select({
+                name: 1,
+                thumbnail: 1,
+                from_collection: 1,
+                is_phygital: 1,
+                state: 1,
+                owner: 1,
+                price: 1,
+            })
+            .populate('owner', 'name thumbnail status')
+            .populate({
+                path: 'from_collection',
+                select: 'name thumbnail',
+                populate: {
+                    path: 'creator',
+                    select: 'name thumbnail status'
+                }
+            })
+            .sort('-createdAt')
+            .exec()
+
         return res.status(200).json(items)
     } catch (error) {
         return res.status(404).json(error)
@@ -298,7 +453,7 @@ const createItem = async (req, res) => {
                 })
             })
 
-            for (const rawProperty of req.body.properties) {
+            if (req.body.properties) for (const rawProperty of req.body.properties) {
                 const property = JSON.parse(rawProperty)
                 if (property.name) properties.push(property)
             }
@@ -492,4 +647,8 @@ module.exports = {
     removeItemListed,
     updateItemById,
     getItemByIdForUpdate,
+    getAllItemsFixedPriceListingOfAccount,
+    getAllItemsAuctionListingOfAccount,
+    getAllItemsCreatedOfAccount,
+    getAllOrdersOfAccount,
 }
