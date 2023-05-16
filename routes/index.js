@@ -6,9 +6,12 @@ const {
     updateExternalUrl,
     create,
 } = require("../controllers/account.controller")
+
 const {
     createItem,
     getItemById,
+    getItemsFixedPrice,
+    getItemsAuction,
     searchItem,
     getItems,
     getRawMetadata,
@@ -21,12 +24,14 @@ const {
     getAllOrdersOfAccount,
     getAllItemOfCollection,
 } = require("../controllers/item.controller")
+
 const {
     createCollection,
     getCollectionById,
     updateCollectionDescription,
     updateCollectionPicture,
     getAllCollectionOfAccount,
+    getAllCollections,
 } = require("../controllers/nft-collection.controller")
 
 const routers = (app) => {
@@ -45,15 +50,19 @@ const routers = (app) => {
     app.get('/items/account/created', getAllItemsCreatedOfAccount)
     app.get('/items/account/orders/sales', getAllOrdersOfAccount)
 
-    app.get('/items/detail', getItemById)
-    app.post('/items/create', createItem)
     app.get('/items/search', searchItem)
+    app.get('/items/detail', getItemById)
     app.get('/items/explore', getItems)
+    app.get('/items/explore/fixed-price', getItemsFixedPrice)
+    app.get('/items/explore/auction', getItemsAuction)
+
+    app.post('/items/create', createItem)
     app.get('/items/raw/:item_id', getRawMetadata)
     app.get('/items/update/:item_id', getItemByIdForUpdate)
     app.post('/items/update', updateItemById)
     app.get('/items/collection', getAllItemOfCollection)
 
+    app.get('/collections/explore', getAllCollections)
     app.get('/collections', getCollectionById)
     app.get('/collections/account', getAllCollectionOfAccount)
     app.post('/collections/create', createCollection)

@@ -14,6 +14,8 @@ const selectedForItemCard = {
     state: 1,
     owner: 1,
     price: 1,
+    start_time: 1,
+    end_time: 1,
 }
 const populatedForItemCard = [
     {
@@ -286,13 +288,49 @@ const searchItem = async (req, res) => {
 
 const getItems = async (req, res) => {
     try {
-        const items = await searchItemByName('')
+        const items = await Item
+            .find({ state: ITEM_STATE.LISTING })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
         return res.status(200).json(items)
     } catch (error) {
         console.error(error)
         return res.status(404).json(error)
     }
 }
+
+const getItemsAuction = async (req, res) => {
+    try {
+        const items = await Item
+            .find({ state: ITEM_STATE.LISTING, start_time: { $exists: true } })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
+        return res.status(200).json(items)
+    } catch (error) {
+        console.error(error)
+        return res.status(404).json(error)
+    }
+}
+
+const getItemsFixedPrice = async (req, res) => {
+    try {
+        const items = await Item
+            .find({ state: ITEM_STATE.LISTING, start_time: { $exists: false } })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
+        return res.status(200).json(items)
+    } catch (error) {
+        console.error(error)
+        return res.status(404).json(error)
+    }
+}
+
 
 const searchItemByName = (keywords) => Item
     .find(({ name: { $regex: keywords, $options: 'i' }, state: { $ne: ITEM_STATE.HIDDEN } }))
@@ -559,6 +597,8 @@ const removeItemListed = (
 
 module.exports = {
     getItems,
+    getItemsFixedPrice,
+    getItemsAuction,
     getAllItemsOfAccount,
     getRawMetadata,
     getItemById,

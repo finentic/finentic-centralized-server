@@ -63,10 +63,43 @@ const ADMIN_ROLES_MAPPING = {
     '0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929': ROLES.OPERATOR_ADMIN,
 }
 
+const SHARED_COLLECTION_DOCUMENT_DEFAULT = {
+    "_id": "0x6fca3d791ae84333f6cfba97518e201c6dfd4830",
+    "name": "Finentic Shared NFT",
+    "symbol": "FxNFT",
+    "picture": "pictures/collections/default.jpg",
+    "thumbnail": "pictures/collections/default.jpg",
+    "state": "CREATED",
+    "creator": "0xbabd46b079b233255784c6dfa8a86e03422512ce",
+    "description": "Is an ERC-721 token, extended with hashed metadata\nfor each token, unique and as a result and not interchangeable.\nFinentic Shared NFT allowing any creator to mint an NFT.",
+    "updatedAt": {
+        "$date": { "$numberLong": "1684174289067" }
+    }
+}
+
+const ACCOUNT_DOCUMENT_DEFAULT = {
+    "_id": "0xbabd46b079b233255784c6dfa8a86e03422512ce",
+    "name": "Default Admin",
+    "picture": "pictures/avatars/default.jpg",
+    "thumbnail": "pictures/avatars/default.jpg",
+    "roles": [],
+    "status": "VERIFIED",
+    "createdAt": {
+        "$date": { "$numberLong": "1683433092263" }
+    },
+    "updatedAt": {
+        "$date": { "$numberLong": "1684255084335" }
+    },
+    "__v": { "$numberInt": "0" },
+    "bio": "\nI am the default administrator.\n"
+}
+
 module.exports = {
     ACCOUNT_STATE,
     ITEM_STATE,
     COLLECTION_STATE,
+    SHARED_COLLECTION_DOCUMENT_DEFAULT,
+    ACCOUNT_DOCUMENT_DEFAULT,
 
     ROLES,
     ROLES_MAPPING,

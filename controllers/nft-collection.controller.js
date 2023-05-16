@@ -112,11 +112,16 @@ const updateCollectionDescription = async (req, res) => {
 const getCollectionById = async (req, res) => {
     try {
         const collectionAddress = req.query.collection_address.toLowerCase()
-        if (collectionAddress.length < 42) return res.status(404)
+        if (collectionAddress.length < 42) return res.status(404).end()
 
         const collectionExist = await NftCollection
             .findById(collectionAddress)
             .where({ state: { $ne: COLLECTION_STATE.HIDDEN } })
+            .populate({
+                path: 'creator',
+                select: 'name thumbnail status',
+            })
+            .sort('-createdAt')
             .exec()
         if (collectionExist) return res.status(200).json(collectionExist)
 
@@ -127,9 +132,16 @@ const getCollectionById = async (req, res) => {
     }
 }
 
-const getAllCollection = async (req, res) => {
+const getAllCollections = async (req, res) => {
     try {
-        const collectionExist = await NftCollection.find({ state: { $ne: COLLECTION_STATE.HIDDEN } }).exec()
+        const collectionExist = await NftCollection
+            .find({ state: { $ne: COLLECTION_STATE.HIDDEN } })
+            .populate({
+                path: 'creator',
+                select: 'name thumbnail status',
+            })
+            .sort('-createdAt')
+            .exec()
         if (collectionExist) return res.status(200).json(collectionExist)
         return res.status(200).json([])
     } catch (error) {
@@ -147,6 +159,10 @@ const getAllCollectionOfAccount = async (req, res) => {
                 name: 1,
                 symbol: 1,
                 thumbnail: 1,
+            })
+            .populate({
+                path: 'creator',
+                select: 'name thumbnail status',
             })
             .sort('-createdAt')
             .exec()
@@ -183,5 +199,5 @@ module.exports = {
     getAllCollectionOfAccount,
     updateCollectionPicture,
     updateCollectionDescription,
-    getAllCollection,
+    getAllCollections,
 }

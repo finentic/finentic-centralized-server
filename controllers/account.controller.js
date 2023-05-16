@@ -1,10 +1,11 @@
-const { AVATAR_PATH, AVATAR_PATH_DB } = require('../configs/constants')
+const { AVATAR_PATH, AVATAR_PATH_DB, API_WS_ENDPOINT, ACCOUNT_STATE } = require('../configs/constants')
 const { Account } = require('../models')
 const fs = require('fs')
 const path = require('path') // path for cut the file extension
 const multer = require('multer')
 const sharp = require('sharp')
-const { Wallet } = require('ethers')
+const { Wallet, providers } = require('ethers')
+const { controlCenterContract } = require('../configs/contracts')
 
 // ==== config  ====<
 sharp.cache(false)
@@ -50,7 +51,10 @@ const getAccount = async (req, res) => {
         const accountExist = await Account.findById(accountAddress).exec()
         if (accountExist) return res.status(200).json(accountExist)
 
-        const newAccount = await Account({ _id: accountAddress }).save()
+        const provider = new providers.WebSocketProvider(API_WS_ENDPOINT)
+        const ControlCenterContract = controlCenterContract(provider)
+        const isWhitelisting = await ControlCenterContract.whitelisting(accountAddress)
+        const newAccount = await Account({ _id: accountAddress, status: isWhitelisting ? ACCOUNT_STATE.VERIFIED : ACCOUNT_STATE.UNVERIFIED }).save()
         return res.status(201).json(newAccount)
     } catch (error) {
         console.error(error)
