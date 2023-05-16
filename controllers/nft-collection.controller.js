@@ -142,15 +142,15 @@ const getAllCollectionOfAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
         const collectionExists = await NftCollection
-        .find({ creator: accountAddress, state: { $ne: COLLECTION_STATE.HIDDEN } })
-        .select({
-            name: 1,
-            symbol: 1,
-            thumbnail: 1,
-        })
-        .sort('-createdAt')
-        .exec()
-        if(collectionExists.length) return res.status(200).json(collectionExists)
+            .find({ creator: accountAddress, state: { $ne: COLLECTION_STATE.HIDDEN } })
+            .select({
+                name: 1,
+                symbol: 1,
+                thumbnail: 1,
+            })
+            .sort('-createdAt')
+            .exec()
+        if (collectionExists.length) return res.status(200).json(collectionExists)
         return res.status(200).json([])
     } catch (error) {
         console.error(error)
@@ -158,26 +158,22 @@ const getAllCollectionOfAccount = async (req, res) => {
     }
 }
 
-const createCollectionForAccount = (
+const createCollectionForAccount = async (
     from_collection_address,
     creator_address,
     from_collection_name,
     from_collection_symbol,
 ) => {
-    try {
-        NftCollection.findByIdAndUpdate(
-            from_collection_address.toLowerCase(),
-            {
-                creator: creator_address.toLowerCase(),
-                name: from_collection_name,
-                symbol: from_collection_symbol,
-                state: COLLECTION_STATE.CREATED
-            },
-            { upsert: true }
-        ).exec()
-    } catch (error) {
-        console.error(error)
-    }
+    await NftCollection.findByIdAndUpdate(
+        from_collection_address.toLowerCase(),
+        {
+            creator: creator_address.toLowerCase(),
+            name: from_collection_name,
+            symbol: from_collection_symbol,
+            state: COLLECTION_STATE.CREATED
+        },
+        { upsert: true }
+    ).exec()
 }
 
 module.exports = {
