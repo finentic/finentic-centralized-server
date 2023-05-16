@@ -16,7 +16,7 @@ const collectionFactoryJobs = async provider => {
                 ')',
             )
             createCollectionForAccount(collection, creator, name, symbol)
-            collectionJob(provider, collection._id)
+            collectionJob(provider, collection)
         }
     )
 

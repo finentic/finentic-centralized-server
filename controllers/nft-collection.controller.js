@@ -1,5 +1,5 @@
 const { COLLECTION_PATH, COLLECTION_PATH_DB, COLLECTION_STATE } = require('../configs/constants')
-const { NftCollection, Item } = require('../models')
+const { NftCollection } = require('../models')
 const fs = require('fs')
 const path = require('path') // path for cut the file extension
 const multer = require('multer')
