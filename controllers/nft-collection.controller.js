@@ -131,7 +131,7 @@ const getAllCollection = async (req, res) => {
     try {
         const collectionExist = await NftCollection.find({ state: { $ne: COLLECTION_STATE.HIDDEN } }).exec()
         if (collectionExist) return res.status(200).json(collectionExist)
-        return res.status(404).end()
+        return res.status(200).json([])
     } catch (error) {
         console.error(error)
         return res.status(500).json(error)
@@ -151,7 +151,7 @@ const getAllCollectionOfAccount = async (req, res) => {
         .sort('-createdAt')
         .exec()
         if(collectionExists.length) return res.status(200).json(collectionExists)
-        return res.status(404).end()
+        return res.status(200).json([])
     } catch (error) {
         console.error(error)
         return res.status(500).json(error)
