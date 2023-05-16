@@ -90,7 +90,7 @@ const getAllItemsOfAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
         const items = await Item
-            .find(({ owner: accountAddress, state: { $ne: ITEM_STATE.HIDDEN } }))
+            .find({ owner: accountAddress, state: { $ne: ITEM_STATE.HIDDEN } })
             .select(selectedForItemCard)
             .populate(populatedForItemCard)
             .sort('-createdAt')
@@ -121,11 +121,11 @@ const getAllItemsFixedPriceListingOfAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
         const items = await Item
-            .find(({
+            .find({
                 owner: accountAddress,
                 start_time: { $exists: false },
                 state: ITEM_STATE.LISTING
-            }))
+            })
             .select(selectedForItemCard)
             .populate(populatedForItemCard)
             .sort('-createdAt')
@@ -141,11 +141,11 @@ const getAllItemsAuctionListingOfAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
         const items = await Item
-            .find(({
+            .find({
                 owner: accountAddress,
                 start_time: { $exists: true },
                 state: ITEM_STATE.LISTING
-            }))
+            })
             .select(selectedForItemCard)
             .populate(populatedForItemCard)
             .sort('-createdAt')
@@ -161,10 +161,10 @@ const getAllItemsCreatedOfAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
         const items = await Item
-            .find(({
+            .find({
                 creator: accountAddress,
                 state: { $ne: ITEM_STATE.HIDDEN },
-            }))
+            })
             .select(selectedForItemCard)
             .populate(populatedForItemCard)
             .sort('-createdAt')
@@ -180,10 +180,10 @@ const getAllOrdersOfAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
         const items = await Item
-            .find(({
+            .find({
                 owner: accountAddress,
                 state: { $in: [ITEM_STATE.LISTING, ITEM_STATE.SOLD, ITEM_STATE.DELIVERED, ITEM_STATE.CANCELED] },
-            }))
+            })
             .select(selectedForItemCard)
             .populate(populatedForItemCard)
             .sort('-createdAt')

@@ -45,7 +45,7 @@ const uploadSingle = multer({
 const getAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
-        if (accountAddress.length < 42) return res.status(404)
+        if (accountAddress.length < 42) return res.status(404).end()
 
         const accountExist = await Account.findById(accountAddress).exec()
         if (accountExist) return res.status(200).json(accountExist)

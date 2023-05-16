@@ -1,4 +1,4 @@
-const { COLLECTION_PATH, COLLECTION_PATH_DB } = require('../configs/constants')
+const { COLLECTION_PATH, COLLECTION_PATH_DB, COLLECTION_STATE } = require('../configs/constants')
 const { NftCollection, Item } = require('../models')
 const fs = require('fs')
 const path = require('path') // path for cut the file extension
@@ -114,9 +114,23 @@ const getCollectionById = async (req, res) => {
         const collectionAddress = req.query.collection_address.toLowerCase()
         if (collectionAddress.length < 42) return res.status(404)
 
-        const collectionExist = await NftCollection.findById(collectionAddress).exec()
+        const collectionExist = await NftCollection
+            .findById(collectionAddress)
+            .where({ state: { $ne: COLLECTION_STATE.HIDDEN } })
+            .exec()
         if (collectionExist) return res.status(200).json(collectionExist)
 
+        return res.status(404).end()
+    } catch (error) {
+        console.error(error)
+        return res.status(500).json(error)
+    }
+}
+
+const getAllCollection = async (req, res) => {
+    try {
+        const collectionExist = await NftCollection.find({ state: { $ne: COLLECTION_STATE.HIDDEN } }).exec()
+        if (collectionExist) return res.status(200).json(collectionExist)
         return res.status(404).end()
     } catch (error) {
         console.error(error)
@@ -127,8 +141,17 @@ const getCollectionById = async (req, res) => {
 const getAllCollectionOfAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
-        const from_collections = await NftCollection.find({ creator: accountAddress }).sort('-createdAt').exec()
-        return res.status(200).json(from_collections)
+        const collectionExists = await NftCollection
+        .find({ creator: accountAddress, state: { $ne: COLLECTION_STATE.HIDDEN } })
+        .select({
+            name: 1,
+            symbol: 1,
+            thumbnail: 1,
+        })
+        .sort('-createdAt')
+        .exec()
+        if(collectionExists.length) return res.status(200).json(collectionExists)
+        return res.status(404).end()
     } catch (error) {
         console.error(error)
         return res.status(500).json(error)
@@ -148,6 +171,7 @@ const createCollectionForAccount = (
                 creator: creator_address.toLowerCase(),
                 name: from_collection_name,
                 symbol: from_collection_symbol,
+                state: COLLECTION_STATE.CREATED
             },
             { upsert: true }
         ).exec()
@@ -163,4 +187,5 @@ module.exports = {
     getAllCollectionOfAccount,
     updateCollectionPicture,
     updateCollectionDescription,
+    getAllCollection,
 }

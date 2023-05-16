@@ -26,6 +26,7 @@ const {
     getCollectionById,
     updateCollectionDescription,
     updateCollectionPicture,
+    getAllCollectionOfAccount,
 } = require("../controllers/nft-collection.controller")
 
 const routers = (app) => {
@@ -54,6 +55,7 @@ const routers = (app) => {
     app.get('/items/collection', getAllItemOfCollection)
 
     app.get('/collections', getCollectionById)
+    app.get('/collections/account', getAllCollectionOfAccount)
     app.post('/collections/create', createCollection)
     app.post('/collections/update-description', updateCollectionDescription)
     app.post('/collections/update-picture', updateCollectionPicture)

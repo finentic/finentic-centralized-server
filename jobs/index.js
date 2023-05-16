@@ -1,9 +1,12 @@
 const { providers } = require('ethers')
-const { NETWORK_ID, API_WS_ENDPOINT } = require('../configs/constants')
+const { NETWORK_ID, API_WS_ENDPOINT, ITEM_STATE } = require('../configs/constants')
 const { collectionFactoryJobs } = require('./collection-factory.jobs')
 const { controlCenterJobs } = require("./control-center.jobs")
 const { marketplaceJobs } = require('./marketplace.jobs')
 const { sharedJobs } = require('./shared.jobs')
+const { NftCollection } = require('../models')
+const { SHARED_ADDRESS } = require('../configs/contracts')
+const { collectionJob } = require('./collection.jobs')
 
 const intervalTime = 1000 * 60 * 5 // 1000ms * 60s * 10m
 
@@ -16,6 +19,11 @@ const triggerJobs = async () => {
     controlCenterJobs(provider)
     marketplaceJobs(provider)
     sharedJobs(provider)
+
+    const collectionsExists = await NftCollection.find({ state: { $ne: ITEM_STATE.HIDDEN } }).select({ _id: 1 }).exec()
+    collectionsExists.forEach(collection => {
+        if (collection._id.toLocaleLowerCase() != SHARED_ADDRESS.toLocaleLowerCase()) collectionJob(provider, collection._id)
+    })
 
     // call interval to keep web socket alive
     setInterval(async () => {
