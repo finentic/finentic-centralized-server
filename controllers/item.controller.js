@@ -68,25 +68,70 @@ const uploadMulti = multer({
     }
 }).array('files', 10) // max 100MB
 
-const uploadSingle = multer({
-    // The function should call `callBack` with a boolean to indicate if the file should be accepted
-    fileFilter: (_req, file, callBack) => {
-        if (
-            file.mimetype == "image/png"
-            || file.mimetype == "image/jpg"
-            || file.mimetype == "image/jpeg"
-        ) {
-            callBack(null, true)
-        } else {
-            console.error('Item: Only .png, .jpg and .jpeg format allowed!')
-            callBack(null, false)
+const createItem = async (req, res) => {
+    uploadMulti(req, res, async (_err) => {
+        try {
+            const pictures = []
+            const properties = []
+            const { path, filename } = req.files[0]
+
+            req.body._id = toItemId(req.body.from_collection_address, req.body.token_id)
+            req.body.owner = req.body.owner_address.toLowerCase()
+            req.body.creator = req.body.owner_address.toLowerCase()
+            req.body.from_collection = req.body.from_collection_address.toLowerCase()
+
+            const thumbnailPath = `${dirname(path)}/${basename(path, extname(filename))}_thumb${extname(filename)}`
+            const thumbnailPathDb = `${dirname(path.substring(7))}/${basename(path, extname(filename))}_thumb${extname(filename)}`
+            await sharp(path)
+                .resize(undefined, 250, { fit: sharp.fit.cover })
+                .toFile(thumbnailPath)
+
+            req.files.forEach(async element => {
+                // convert binary data to base64 encoded string
+                const base64EncodePicture = fs.readFileSync(element.path, 'base64')
+                const raw_base64_hashed = solidityKeccak256(['string'], [base64EncodePicture])
+                pictures.push({
+                    file_uri: `${dirname(element.path.substring(7))}/${element.filename}`,
+                    raw_base64_uri: `${ITEM_PATH_RAW}${dirname(element.path.substring(22))}/${element.filename}`,
+                    raw_base64_hashed: raw_base64_hashed,
+                })
+            })
+
+            if (req.body.properties) for (const rawProperty of req.body.properties) {
+                const property = JSON.parse(rawProperty)
+                if (property.name) properties.push(property)
+            }
+            req.body.properties = properties.length ? properties : undefined
+            req.body.pictures = pictures
+            req.body.thumbnail = thumbnailPathDb
+
+            const newItem = new Item(req.body)
+            await Item.findByIdAndUpdate(newItem._id, newItem, { upsert: true }).exec()
+
+            const metadata = await getRawMetadataById(newItem._id)
+            const hashedMetadata = solidityKeccak256(['string'], [JSON.stringify(metadata)])
+            await Item.findByIdAndUpdate(newItem._id, { hashed_metadata: hashedMetadata }).exec()
+            return res.status(201).json({ hashed_metadata: hashedMetadata })
+        } catch (error) {
+            console.error(error)
+            res.status(415).json({ error: 'Item: An unknown error occurred when uploading.' })
         }
-    },
-    storage: storage,
-    limits: {
-        fileSize: (8 * 1024 * 1024) * 10, // max 10MB
+    })
+}
+
+const getPictureInBase64Encode = async (req, res) => {
+    try {
+        const itemId = req.params.item_id
+        const fileName = req.params.file_name
+        const itemPath = `${ITEM_PATH}${itemId}/${fileName}`
+        // convert binary data to base64 encoded string
+        const base64EncodePicture = fs.readFileSync(itemPath, 'base64')
+        return res.status(200).send(base64EncodePicture)
+    } catch (error) {
+        return res.status(404).json(error)
     }
-}).single('file') // max 10MB
+}
+
 
 const getAllItemsOfAccount = async (req, res) => {
     try {
@@ -98,6 +143,132 @@ const getAllItemsOfAccount = async (req, res) => {
             .sort('-createdAt')
             .exec()
 
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllPurchaseItemsOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find({
+                buyer: accountAddress,
+                state: { $in: [ITEM_STATE.SOLD, ITEM_STATE.DELIVERED, ITEM_STATE.CANCELED],
+            }})
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllShippingPurchaseItemsOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find({ buyer: accountAddress, state: ITEM_STATE.SOLD })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllDeliveredPurchaseItemsOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find({ buyer: accountAddress, state: ITEM_STATE.DELIVERED })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllCanceledPurchaseItemsOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find({ buyer: accountAddress, state: ITEM_STATE.CANCELED })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllSalesItemsOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find({
+                owner: accountAddress,
+                state: { $in: [ITEM_STATE.SOLD, ITEM_STATE.DELIVERED, ITEM_STATE.CANCELED],
+            }})
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllShippingSalesItemsOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find({ owner: accountAddress, state: ITEM_STATE.SOLD })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllDeliveredSalesItemsOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find({ owner: accountAddress, state: ITEM_STATE.DELIVERED })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const getAllCanceledSalesItemsOfAccount = async (req, res) => {
+    try {
+        const accountAddress = req.query.account_address.toLowerCase()
+        const items = await Item
+            .find({ owner: accountAddress, state: ITEM_STATE.CANCELED })
+            .select(selectedForItemCard)
+            .populate(populatedForItemCard)
+            .sort('-createdAt')
+            .exec()
         return res.status(200).json(items)
     } catch (error) {
         return res.status(404).json(error)
@@ -166,25 +337,6 @@ const getAllItemsCreatedOfAccount = async (req, res) => {
             .find({
                 creator: accountAddress,
                 state: { $ne: ITEM_STATE.HIDDEN },
-            })
-            .select(selectedForItemCard)
-            .populate(populatedForItemCard)
-            .sort('-createdAt')
-            .exec()
-
-        return res.status(200).json(items)
-    } catch (error) {
-        return res.status(404).json(error)
-    }
-}
-
-const getAllOrdersOfAccount = async (req, res) => {
-    try {
-        const accountAddress = req.query.account_address.toLowerCase()
-        const items = await Item
-            .find({
-                owner: accountAddress,
-                state: { $in: [ITEM_STATE.LISTING, ITEM_STATE.SOLD, ITEM_STATE.DELIVERED, ITEM_STATE.CANCELED] },
             })
             .select(selectedForItemCard)
             .populate(populatedForItemCard)
@@ -389,70 +541,6 @@ const getRawMetadata = async (req, res) => {
     }
 }
 
-const createItem = async (req, res) => {
-    uploadMulti(req, res, async (_err) => {
-        try {
-            const pictures = []
-            const properties = []
-            const { path, filename } = req.files[0]
-
-            req.body._id = toItemId(req.body.from_collection_address, req.body.token_id)
-            req.body.owner = req.body.owner_address.toLowerCase()
-            req.body.creator = req.body.owner_address.toLowerCase()
-            req.body.from_collection = req.body.from_collection_address.toLowerCase()
-
-            const thumbnailPath = `${dirname(path)}/${basename(path, extname(filename))}_thumb${extname(filename)}`
-            const thumbnailPathDb = `${dirname(path.substring(7))}/${basename(path, extname(filename))}_thumb${extname(filename)}`
-            await sharp(path)
-                .resize(undefined, 250, { fit: sharp.fit.cover })
-                .toFile(thumbnailPath)
-
-            req.files.forEach(async element => {
-                // convert binary data to base64 encoded string
-                const base64EncodePicture = fs.readFileSync(element.path, 'base64')
-                const raw_base64_hashed = solidityKeccak256(['string'], [base64EncodePicture])
-                pictures.push({
-                    file_uri: `${dirname(element.path.substring(7))}/${element.filename}`,
-                    raw_base64_uri: `${ITEM_PATH_RAW}${dirname(element.path.substring(22))}/${element.filename}`,
-                    raw_base64_hashed: raw_base64_hashed,
-                })
-            })
-
-            if (req.body.properties) for (const rawProperty of req.body.properties) {
-                const property = JSON.parse(rawProperty)
-                if (property.name) properties.push(property)
-            }
-            req.body.properties = properties.length ? properties : undefined
-            req.body.pictures = pictures
-            req.body.thumbnail = thumbnailPathDb
-
-            const newItem = new Item(req.body)
-            await Item.findByIdAndUpdate(newItem._id, newItem, { upsert: true }).exec()
-
-            const metadata = await getRawMetadataById(newItem._id)
-            const hashedMetadata = solidityKeccak256(['string'], [JSON.stringify(metadata)])
-            await Item.findByIdAndUpdate(newItem._id, { hashed_metadata: hashedMetadata }).exec()
-            return res.status(201).json({ hashed_metadata: hashedMetadata })
-        } catch (error) {
-            console.error(error)
-            res.status(415).json({ error: 'Item: An unknown error occurred when uploading.' })
-        }
-    })
-}
-
-const getPictureInBase64Encode = async (req, res) => {
-    try {
-        const itemId = req.params.item_id
-        const fileName = req.params.file_name
-        const itemPath = `${ITEM_PATH}${itemId}/${fileName}`
-        // convert binary data to base64 encoded string
-        const base64EncodePicture = fs.readFileSync(itemPath, 'base64')
-        return res.status(200).send(base64EncodePicture)
-    } catch (error) {
-        return res.status(404).json(error)
-    }
-}
-
 const updateOwnerAndState = async (
     from_collection_address,
     token_id,
@@ -485,7 +573,7 @@ const updateState = async (from_collection_address, token_id, item_state) => {
     await Item.findByIdAndUpdate(itemId, { state: item_state }).exec()
 }
 
-const listForAuction = (
+const listForAuction = async (
     from_collection_address,
     token_id,
     start_time,
@@ -494,22 +582,26 @@ const listForAuction = (
     amount,
     gap,
 ) => {
-    const itemId = toItemId(from_collection_address, token_id)
-    console.info('ListForAuction: ', itemId)
-    Item.findByIdAndUpdate(
-        itemId,
-        {
-            start_time,
-            end_time,
-            price: amount,
-            gap,
-            payment_token,
-            state: ITEM_STATE.LISTING,
-        },
-    ).exec()
+    try {
+        const itemId = toItemId(from_collection_address, token_id)
+        console.info('ListForAuction: ', itemId)
+        await Item.findByIdAndUpdate(
+            itemId,
+            {
+                start_time,
+                end_time,
+                price: amount,
+                gap,
+                payment_token,
+                state: ITEM_STATE.LISTING,
+            },
+        ).exec()
+    } catch (error) {
+        console.error(error)
+    }
 }
 
-const biddingForAuction = (
+const biddingForAuction = async (
     from_collection_address,
     token_id,
     bidder,
@@ -517,82 +609,99 @@ const biddingForAuction = (
     tx_hash,
     timestamp,
 ) => {
-    const itemId = toItemId(from_collection_address, token_id)
-    console.info('BiddingForAuction: ', itemId)
-    Item.findByIdAndUpdate(
-        itemId,
-        {
-            $addToSet: {
-                price_history: {
-                    account: bidder,
-                    amount,
-                    tx_hash,
-                    timestamp,
+    try {
+        const itemId = toItemId(from_collection_address, token_id)
+        console.info('BiddingForAuction: ', itemId)
+        await Item.findByIdAndUpdate(
+            itemId,
+            {
+                $addToSet: {
+                    price_history: {
+                        account: bidder,
+                        amount,
+                        tx_hash,
+                        timestamp,
+                    },
                 },
+                buyer: bidder,
+                price: amount,
             },
-            buyer: bidder,
-            price: amount,
-        },
-    ).exec()
+        ).exec()
+    } catch (error) {
+        console.error(error)
+    }
 }
 
-const listForBuyNow = (
+const listForBuyNow = async (
     from_collection_address,
     token_id,
     payment_token,
     price,
 ) => {
-    const itemId = toItemId(from_collection_address, token_id)
-    Item.findByIdAndUpdate(
-        itemId,
-        {
-            price,
-            payment_token,
-            state: ITEM_STATE.LISTING
-        },
-    ).exec()
+    try {
+        const itemId = toItemId(from_collection_address, token_id)
+        await Item.findByIdAndUpdate(
+            itemId,
+            {
+                price,
+                payment_token,
+                state: ITEM_STATE.LISTING
+            },
+        ).exec()
+    } catch (error) {
+        console.error(error)
+    }
 }
 
-const phygitalItemUpdate = (
+const phygitalItemUpdate = async (
     from_collection_address,
     token_id,
     phygital_item_state,
     next_update_deadline,
 ) => {
-    const itemId = toItemId(from_collection_address, token_id)
-    console.info('PhygitalItemUpdate: ', itemId)
-    Item.findByIdAndUpdate(
-        itemId,
-        {
-            state: phygital_item_state,
-            next_update_deadline,
-        },
-    ).exec()
+    try {
+        const itemId = toItemId(from_collection_address, token_id)
+        console.info('PhygitalItemUpdate: ', itemId)
+        await Item.findByIdAndUpdate(
+            itemId,
+            {
+                state: phygital_item_state,
+                next_update_deadline,
+            },
+        ).exec()
+    } catch (error) {
+        console.error(error)
+    }
+
 }
 
-const removeItemListed = (
+const removeItemListed = async (
     from_collection_address,
     token_id,
     state,
 ) => {
-    const itemId = toItemId(from_collection_address, token_id)
-    console.info('RemoveItemListed: ', itemId)
-    Item.findByIdAndUpdate(
-        itemId,
-        {
-            $unset: {
-                price: 1,
-                payment_token: 1,
-                next_update_deadline: 1,
-                delivery: 1,
-                gap: 1,
-                end_time: 1,
-                start_time: 1,
-                buyer: 1,
+    try {
+        const itemId = toItemId(from_collection_address, token_id)
+        console.info('RemoveItemListed: ', itemId)
+        await Item.findByIdAndUpdate(
+            itemId,
+            {
+                $unset: {
+                    price: 1,
+                    payment_token: 1,
+                    next_update_deadline: 1,
+                    delivery: 1,
+                    gap: 1,
+                    end_time: 1,
+                    start_time: 1,
+                    buyer: 1,
+                },
+                state: state,
             },
-            state: state,
-        },
-    ).exec()
+        ).exec()
+    } catch (error) {
+        console.error(error)
+    }
 }
 
 module.exports = {
@@ -614,9 +723,19 @@ module.exports = {
     removeItemListed,
     updateItemById,
     getItemByIdForUpdate,
+    
     getAllItemsFixedPriceListingOfAccount,
     getAllItemsAuctionListingOfAccount,
     getAllItemsCreatedOfAccount,
-    getAllOrdersOfAccount,
     getAllItemOfCollection,
+    
+    getAllPurchaseItemsOfAccount,
+    getAllCanceledPurchaseItemsOfAccount,
+    getAllDeliveredPurchaseItemsOfAccount,
+    getAllShippingPurchaseItemsOfAccount,
+
+    getAllCanceledSalesItemsOfAccount,
+    getAllDeliveredSalesItemsOfAccount,
+    getAllSalesItemsOfAccount,
+    getAllShippingSalesItemsOfAccount,
 }

@@ -17,12 +17,22 @@ const {
     getRawMetadata,
     getItemByIdForUpdate,
     updateItemById,
+
     getAllItemsOfAccount,
     getAllItemsFixedPriceListingOfAccount,
     getAllItemsAuctionListingOfAccount,
     getAllItemsCreatedOfAccount,
-    getAllOrdersOfAccount,
     getAllItemOfCollection,
+
+    getAllPurchaseItemsOfAccount,
+    getAllCanceledPurchaseItemsOfAccount,
+    getAllDeliveredPurchaseItemsOfAccount,
+    getAllShippingPurchaseItemsOfAccount,
+
+    getAllCanceledSalesItemsOfAccount,
+    getAllDeliveredSalesItemsOfAccount,
+    getAllSalesItemsOfAccount,
+    getAllShippingSalesItemsOfAccount,
 } = require("../controllers/item.controller")
 
 const {
@@ -48,7 +58,16 @@ const routers = (app) => {
     app.get('/items/account/fixed-price', getAllItemsFixedPriceListingOfAccount)
     app.get('/items/account/auction', getAllItemsAuctionListingOfAccount)
     app.get('/items/account/created', getAllItemsCreatedOfAccount)
-    app.get('/items/account/orders/sales', getAllOrdersOfAccount)
+
+    app.get('/items/account/orders/purchase', getAllPurchaseItemsOfAccount)
+    app.get('/items/account/orders/purchase/canceled', getAllCanceledPurchaseItemsOfAccount)
+    app.get('/items/account/orders/purchase/delivered', getAllDeliveredPurchaseItemsOfAccount)
+    app.get('/items/account/orders/purchase/shipping', getAllShippingPurchaseItemsOfAccount)
+
+    app.get('/items/account/orders/sales', getAllSalesItemsOfAccount)
+    app.get('/items/account/orders/sales/canceled', getAllCanceledSalesItemsOfAccount)
+    app.get('/items/account/orders/sales/delivered', getAllDeliveredSalesItemsOfAccount)
+    app.get('/items/account/orders/sales/shipping', getAllShippingSalesItemsOfAccount)
 
     app.get('/items/search', searchItem)
     app.get('/items/detail', getItemById)

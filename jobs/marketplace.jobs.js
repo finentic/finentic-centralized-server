@@ -132,8 +132,8 @@ const marketplaceJobs = async provider => {
             )
             if (state == 0) removeItemListed(nftContract, tokenId, ITEM_STATE.CREATED)
             if (state == 1) phygitalItemUpdate(
-                nftContract,
-                tokenId,
+                nftContract.toLowerCase(),
+                tokenId.toString(),
                 ITEM_STATE.SOLD,
                 nextUpdateDeadline,
             )
