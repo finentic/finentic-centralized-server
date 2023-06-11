@@ -119,6 +119,23 @@ const marketplaceJobs = async provider => {
         }
     )
 
+    MarketplaceContract.on('RemoveItemForAuction',
+        (nftContract, tokenId) => {
+            console.log(
+                'RemoveItemForAuction(',
+                nftContract.toLowerCase(),
+                tokenId.toString(),
+                ITEM_STATE.CREATED,
+                ')',
+            )
+            removeItemListed(
+                nftContract.toLowerCase(),
+                tokenId.toString(),
+                ITEM_STATE.CREATED,
+            )
+        },
+    )
+
     MarketplaceContract.on('PhygitalItemUpdated',
         (nftContract, tokenId, state, nextUpdateDeadline) => {
             tokenId = tokenId.toString()

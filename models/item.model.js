@@ -77,6 +77,11 @@ const itemSchema = new Schema({
     ref: 'Account'
   },
   ownership_history: [{
+    _id: {
+      type: String,
+      length: 66,
+      // default: '0x0000000000000000000000000000000000000000000000000000000000000000',
+    },
     account: {
       type: String,
       ref: 'Account'
@@ -86,46 +91,37 @@ const itemSchema = new Schema({
       length: 66,
       // default: '0x0000000000000000000000000000000000000000000000000000000000000000',
     },
-    timestamp: {
-      type: String,
-    }
+    timestamp: String,
   }],
   payment_token: {
     type: String,
     length: 42,
   },
-  price: {
-    type: String,
-  },
+  price: String,
   buyer: {
     type: String,
     ref: 'Account'
   },
-  start_time: {
-    type: String,
-  },
-  end_time: {
-    type: String,
-  },
-  gap: {
-    type: String,
-  },
+  start_time: String,
+  end_time: String,
+  gap: String,
   price_history: [{
+    _id: {
+      type: String,
+      length: 66,
+      // default: '0x0000000000000000000000000000000000000000000000000000000000000000',
+    },
     account: {
       type: String,
       ref: 'Account'
-    },
-    amount: {
-      type: String,
     },
     tx_hash: {
       type: String,
       length: 66,
       // default: '0x0000000000000000000000000000000000000000000000000000000000000000',
     },
-    timestamp: {
-      type: String,
-    }
+    amount: String,
+    timestamp: String,
   }],
   delivery: {
     from: {
@@ -141,9 +137,7 @@ const itemSchema = new Schema({
       maxlength: 64,
     }
   },
-  next_update_deadline: {
-    type: String,
-  },
+  next_update_deadline: String,
   state: {
     type: String,
     enum: ITEM_STATE,
