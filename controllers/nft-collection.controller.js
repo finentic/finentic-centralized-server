@@ -150,6 +150,28 @@ const getAllCollections = async (req, res) => {
     }
 }
 
+const searchCollection = async (req, res) => {
+    try {
+        const { keywords } = req.query
+        const keywordsLength = keywords.trim().length
+        if (keywordsLength == 0) return res.status(200).json([])
+        const collectionExist = await NftCollection
+            .find({
+                name: { $regex: keywords, $options: 'i' },
+                state: { $ne: COLLECTION_STATE.HIDDEN },
+            })
+            .populate({
+                path: 'creator',
+                select: 'name thumbnail status',
+            })
+            .sort('-createdAt')
+            .exec()
+        return res.status(200).json(collectionExist)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
 const getAllCollectionOfAccount = async (req, res) => {
     try {
         const accountAddress = req.query.account_address.toLowerCase()
@@ -200,4 +222,5 @@ module.exports = {
     updateCollectionPicture,
     updateCollectionDescription,
     getAllCollections,
+    searchCollection,
 }

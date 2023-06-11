@@ -33,6 +33,9 @@ const {
     getAllDeliveredSalesItemsOfAccount,
     getAllSalesItemsOfAccount,
     getAllShippingSalesItemsOfAccount,
+    searchItemAuction,
+    searchItemFixedPrice,
+    searchItemByAddress,
 } = require("../controllers/item.controller")
 
 const {
@@ -42,6 +45,7 @@ const {
     updateCollectionPicture,
     getAllCollectionOfAccount,
     getAllCollections,
+    searchCollection,
 } = require("../controllers/nft-collection.controller")
 
 const routers = (app) => {
@@ -70,6 +74,10 @@ const routers = (app) => {
     app.get('/items/account/orders/sales/shipping', getAllShippingSalesItemsOfAccount)
 
     app.get('/items/search', searchItem)
+    app.get('/items/search/auction', searchItemAuction)
+    app.get('/items/search/fixed-price', searchItemFixedPrice)
+    app.get('/items/search/address', searchItemByAddress)
+
     app.get('/items/detail', getItemById)
     app.get('/items/explore', getItems)
     app.get('/items/explore/fixed-price', getItemsFixedPrice)
@@ -81,6 +89,7 @@ const routers = (app) => {
     app.post('/items/update', updateItemById)
     app.get('/items/collection', getAllItemOfCollection)
 
+    app.get('/collections/search', searchCollection)
     app.get('/collections/explore', getAllCollections)
     app.get('/collections', getCollectionById)
     app.get('/collections/account', getAllCollectionOfAccount)

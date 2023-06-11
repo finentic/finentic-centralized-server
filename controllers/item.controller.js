@@ -83,7 +83,7 @@ const createItem = async (req, res) => {
             const thumbnailPath = `${dirname(path)}/${basename(path, extname(filename))}_thumb${extname(filename)}`
             const thumbnailPathDb = `${dirname(path.substring(7))}/${basename(path, extname(filename))}_thumb${extname(filename)}`
             await sharp(path)
-                .resize(undefined, 250, { fit: sharp.fit.cover })
+                .resize(undefined, 300, { fit: sharp.fit.cover })
                 .toFile(thumbnailPath)
 
             req.files.forEach(async element => {
@@ -155,8 +155,10 @@ const getAllPurchaseItemsOfAccount = async (req, res) => {
         const items = await Item
             .find({
                 buyer: accountAddress,
-                state: { $in: [ITEM_STATE.SOLD, ITEM_STATE.DELIVERED, ITEM_STATE.CANCELED],
-            }})
+                state: {
+                    $in: [ITEM_STATE.SOLD, ITEM_STATE.DELIVERED, ITEM_STATE.CANCELED],
+                }
+            })
             .select(selectedForItemCard)
             .populate(populatedForItemCard)
             .sort('-createdAt')
@@ -218,8 +220,10 @@ const getAllSalesItemsOfAccount = async (req, res) => {
         const items = await Item
             .find({
                 owner: accountAddress,
-                state: { $in: [ITEM_STATE.SOLD, ITEM_STATE.DELIVERED, ITEM_STATE.CANCELED],
-            }})
+                state: {
+                    $in: [ITEM_STATE.SOLD, ITEM_STATE.DELIVERED, ITEM_STATE.CANCELED],
+                }
+            })
             .select(selectedForItemCard)
             .populate(populatedForItemCard)
             .sort('-createdAt')
@@ -357,7 +361,7 @@ const getItemById = async (req, res) => {
             .populate('owner', 'name thumbnail status')
             .populate({
                 path: 'from_collection',
-                select: 'name thumbnail',
+                select: 'name thumbnail description',
             })
             .populate({
                 path: 'creator',
@@ -427,10 +431,43 @@ const searchItem = async (req, res) => {
         const { keywords } = req.query
         const keywordsLength = keywords.trim().length
         if (keywordsLength == 0) return res.status(200).json([])
+        const items = await _searchItemByName(keywords)
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
 
-        const items = (keywordsLength > 42 && keywords.substring(0, 2) == "0x") // address length
-            ? await searchItemById(keywords)
-            : await searchItemByName(keywords)
+const searchItemAuction = async (req, res) => {
+    try {
+        const { keywords } = req.query
+        const keywordsLength = keywords.trim().length
+        if (keywordsLength == 0) return res.status(200).json([])
+        const items = await _searchItemAuction(keywords)
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const searchItemFixedPrice = async (req, res) => {
+    try {
+        const { keywords } = req.query
+        const keywordsLength = keywords.trim().length
+        if (keywordsLength == 0) return res.status(200).json([])
+        const items = await _searchItemFixedPrice(keywords)
+        return res.status(200).json(items)
+    } catch (error) {
+        return res.status(404).json(error)
+    }
+}
+
+const searchItemByAddress = async (req, res) => {
+    try {
+        const { keywords } = req.query
+        const keywordsLength = keywords.trim().length
+        if (keywordsLength < 42) return res.status(200).json([])
+        const items = await _searchItemByAddress(keywords)
         return res.status(200).json(items)
     } catch (error) {
         return res.status(404).json(error)
@@ -483,16 +520,41 @@ const getItemsFixedPrice = async (req, res) => {
     }
 }
 
-
-const searchItemByName = (keywords) => Item
-    .find(({ name: { $regex: keywords, $options: 'i' }, state: { $ne: ITEM_STATE.HIDDEN } }))
+const _searchItemAuction = keywords => Item
+    .find(({
+        name: { $regex: keywords, $options: 'i' },
+        state: ITEM_STATE.LISTING,
+        start_time: { $exists: true },
+    }))
+    .limit(50)
     .select(selectedForItemCard)
     .populate(populatedForItemCard)
     .sort('-createdAt')
     .exec()
 
-const searchItemById = (itemId) => Item
-    .find({ _id: itemId })
+const _searchItemFixedPrice = keywords => Item
+    .find(({
+        name: { $regex: keywords, $options: 'i' },
+        state: ITEM_STATE.LISTING,
+        start_time: { $exists: false },
+    }))
+    .limit(50)
+    .select(selectedForItemCard)
+    .populate(populatedForItemCard)
+    .sort('-createdAt')
+    .exec()
+
+const _searchItemByName = keywords => Item
+    .find(({ name: { $regex: keywords, $options: 'i' }, state: { $ne: ITEM_STATE.HIDDEN } }))
+    .limit(50)
+    .select(selectedForItemCard)
+    .populate(populatedForItemCard)
+    .sort('-createdAt')
+    .exec()
+
+const _searchItemByAddress = itemId => Item
+    .find({ _id: { $regex: itemId, $options: 'i' } })
+    .limit(50)
     .select(selectedForItemCard)
     .populate(populatedForItemCard)
     .sort('-createdAt')
@@ -556,6 +618,7 @@ const updateOwnerAndState = async (
         {
             $addToSet: {
                 ownership_history: {
+                    id: tx_hash,
                     account: owner,
                     tx_hash,
                     timestamp,
@@ -611,17 +674,18 @@ const biddingForAuction = async (
 ) => {
     try {
         const itemId = toItemId(from_collection_address, token_id)
-        console.info('BiddingForAuction: ', itemId)
         await Item.findByIdAndUpdate(
             itemId,
             {
                 $addToSet: {
-                    price_history: {
+                    price_history:
+                    {
+                        id: tx_hash,
                         account: bidder,
                         amount,
                         tx_hash,
                         timestamp,
-                    },
+                    }
                 },
                 buyer: bidder,
                 price: amount,
@@ -645,7 +709,7 @@ const listForBuyNow = async (
             {
                 price,
                 payment_token,
-                state: ITEM_STATE.LISTING
+                state: ITEM_STATE.LISTING,
             },
         ).exec()
     } catch (error) {
@@ -682,10 +746,10 @@ const removeItemListed = async (
 ) => {
     try {
         const itemId = toItemId(from_collection_address, token_id)
-        console.info('RemoveItemListed: ', itemId)
         await Item.findByIdAndUpdate(
             itemId,
             {
+                state,
                 $unset: {
                     price: 1,
                     payment_token: 1,
@@ -696,7 +760,6 @@ const removeItemListed = async (
                     start_time: 1,
                     buyer: 1,
                 },
-                state: state,
             },
         ).exec()
     } catch (error) {
@@ -705,6 +768,11 @@ const removeItemListed = async (
 }
 
 module.exports = {
+    searchItem,
+    searchItemAuction,
+    searchItemFixedPrice,
+    searchItemByAddress,
+
     getItems,
     getItemsFixedPrice,
     getItemsAuction,
@@ -723,12 +791,12 @@ module.exports = {
     removeItemListed,
     updateItemById,
     getItemByIdForUpdate,
-    
+
     getAllItemsFixedPriceListingOfAccount,
     getAllItemsAuctionListingOfAccount,
     getAllItemsCreatedOfAccount,
     getAllItemOfCollection,
-    
+
     getAllPurchaseItemsOfAccount,
     getAllCanceledPurchaseItemsOfAccount,
     getAllDeliveredPurchaseItemsOfAccount,
